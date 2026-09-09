@@ -1,0 +1,182 @@
+{
+  "hvac_filter": {
+    "category": "HVAC",
+    "display_name": "HVAC Air Filter",
+    "service_interval_months": 3,
+    "typical_lifespan_years": null,
+    "repair_cost_range_usd": [15, 40],
+    "replacement_cost_range_usd": [15, 40],
+    "notes": "Filter replacement itself is the maintenance action; no separate repair/replace decision."
+  },
+  "hvac_system": {
+    "category": "HVAC",
+    "display_name": "Central HVAC System",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 15,
+    "repair_cost_range_usd": [150, 1200],
+    "replacement_cost_range_usd": [4000, 12000],
+    "notes": "Annual professional tune-up recommended each spring/fall."
+  },
+  "water_heater_tank": {
+    "category": "Plumbing",
+    "display_name": "Tank Water Heater",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 10,
+    "repair_cost_range_usd": [150, 600],
+    "replacement_cost_range_usd": [900, 3000],
+    "notes": "Annual flush to remove sediment buildup."
+  },
+  "water_heater_tankless": {
+    "category": "Plumbing",
+    "display_name": "Tankless Water Heater",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 20,
+    "repair_cost_range_usd": [200, 800],
+    "replacement_cost_range_usd": [1500, 4500],
+    "notes": "Annual descaling, more frequent in hard-water areas."
+  },
+  "smoke_detector": {
+    "category": "Safety",
+    "display_name": "Smoke Detector",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 10,
+    "repair_cost_range_usd": [0, 0],
+    "replacement_cost_range_usd": [15, 50],
+    "notes": "Battery replacement every 6 months; unit replacement at end of life, not repaired."
+  },
+  "co_detector": {
+    "category": "Safety",
+    "display_name": "Carbon Monoxide Detector",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 7,
+    "repair_cost_range_usd": [0, 0],
+    "replacement_cost_range_usd": [20, 60],
+    "notes": "Battery replacement every 6 months; unit replacement at end of life, not repaired."
+  },
+  "refrigerator": {
+    "category": "Kitchen",
+    "display_name": "Refrigerator",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 13,
+    "repair_cost_range_usd": [100, 500],
+    "replacement_cost_range_usd": [800, 3000],
+    "notes": "Coil cleaning every 6 months; check door seals annually."
+  },
+  "dishwasher": {
+    "category": "Kitchen",
+    "display_name": "Dishwasher",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 10,
+    "repair_cost_range_usd": [100, 400],
+    "replacement_cost_range_usd": [500, 1500],
+    "notes": "Annual filter cleaning and spray arm inspection."
+  },
+  "garbage_disposal": {
+    "category": "Kitchen",
+    "display_name": "Garbage Disposal",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 12,
+    "repair_cost_range_usd": [80, 250],
+    "replacement_cost_range_usd": [150, 500],
+    "notes": "Annual inspection for leaks and blade sharpness."
+  },
+  "washing_machine": {
+    "category": "Laundry",
+    "display_name": "Washing Machine",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 11,
+    "repair_cost_range_usd": [100, 450],
+    "replacement_cost_range_usd": [600, 1800],
+    "notes": "Hose inspection every 6 months; replace supply hoses every 5 years regardless of condition."
+  },
+  "dryer": {
+    "category": "Laundry",
+    "display_name": "Clothes Dryer",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 13,
+    "repair_cost_range_usd": [100, 400],
+    "replacement_cost_range_usd": [500, 1500],
+    "notes": "Annual vent duct cleaning — fire risk if neglected."
+  },
+  "water_softener": {
+    "category": "Plumbing",
+    "display_name": "Water Softener",
+    "service_interval_months": 3,
+    "typical_lifespan_years": 12,
+    "repair_cost_range_usd": [100, 400],
+    "replacement_cost_range_usd": [600, 2500],
+    "notes": "Salt refill quarterly; resin bed check annually."
+  },
+  "sump_pump": {
+    "category": "Plumbing",
+    "display_name": "Sump Pump",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 10,
+    "repair_cost_range_usd": [100, 350],
+    "replacement_cost_range_usd": [300, 1200],
+    "notes": "Test operation every 6 months, especially before rainy season."
+  },
+  "garage_door_opener": {
+    "category": "Structural",
+    "display_name": "Garage Door Opener",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 15,
+    "repair_cost_range_usd": [100, 350],
+    "replacement_cost_range_usd": [300, 900],
+    "notes": "Annual lubrication and safety sensor test."
+  },
+  "water_filtration_system": {
+    "category": "Plumbing",
+    "display_name": "Whole-House Water Filtration System",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 10,
+    "repair_cost_range_usd": [80, 300],
+    "replacement_cost_range_usd": [500, 2000],
+    "notes": "Filter cartridge replacement every 6 months, varies by usage."
+  },
+  "gutters": {
+    "category": "Structural",
+    "display_name": "Gutters",
+    "service_interval_months": 6,
+    "typical_lifespan_years": 20,
+    "repair_cost_range_usd": [80, 300],
+    "replacement_cost_range_usd": [1000, 3500],
+    "notes": "Clean twice a year (spring/fall) to prevent water damage."
+  },
+  "roof": {
+    "category": "Structural",
+    "display_name": "Asphalt Shingle Roof",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 22,
+    "repair_cost_range_usd": [300, 1500],
+    "replacement_cost_range_usd": [8000, 20000],
+    "notes": "Annual visual inspection, especially after storms."
+  },
+  "water_pressure_regulator": {
+    "category": "Plumbing",
+    "display_name": "Water Pressure Regulator",
+    "service_interval_months": 24,
+    "typical_lifespan_years": 8,
+    "repair_cost_range_usd": [100, 300],
+    "replacement_cost_range_usd": [250, 600],
+    "notes": "Check pressure every 2 years; failure risks pipe/appliance damage."
+  },
+  "furnace_humidifier": {
+    "category": "HVAC",
+    "display_name": "Furnace-Mounted Humidifier",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 10,
+    "repair_cost_range_usd": [80, 250],
+    "replacement_cost_range_usd": [300, 900],
+    "notes": "Annual pad/filter replacement at start of heating season."
+  },
+  "range_oven": {
+    "category": "Kitchen",
+    "display_name": "Range / Oven",
+    "service_interval_months": 12,
+    "typical_lifespan_years": 15,
+    "repair_cost_range_usd": [100, 400],
+    "replacement_cost_range_usd": [600, 2500],
+    "notes": "Annual igniter/heating element and door seal inspection."
+  }
+}

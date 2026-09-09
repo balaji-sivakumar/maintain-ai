@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "maintain-ai"
+version = "0.1.0"
+description = "Background agent that predicts home appliance maintenance and recommends repair vs. replace"
+requires-python = ">=3.11"
+dependencies = [
+    "strands-agents[openai]>=1.55.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/maintain_ai"]

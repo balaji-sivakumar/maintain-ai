@@ -41,17 +41,28 @@ The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-ind
 
 | Layer | Component | Purpose |
 |---|---|---|
-| Agent framework | Strands Agents SDK (Python) | Orchestrator + Cost Estimator agents, Agent-as-Tool pattern |
-| Model | Amazon Bedrock (Claude) | Reasoning/tool-use for both agents |
-| Compute | AWS Lambda | Hosts the agent runtime |
-| Trigger (automatic) | Amazon EventBridge | Daily schedule to run maintenance checks |
-| Trigger (manual) | Amazon API Gateway | Add/update appliance, mark service done |
-| State store | DynamoDB | Appliance list, install dates, last-serviced dates, cached lookups |
-| RAG fallback | Bedrock Knowledge Base + OpenSearch Serverless | Vector search over appliance manuals when DynamoDB has no match |
-| Document store | Amazon S3 | Curated manufacturer manuals/spec sheets, source for Knowledge Base ingestion |
-| Notifications | SES / SNS | Sends reminder + cost-recommendation alerts to the user |
-| Interface | Lightweight web form or CLI (Flask/FastAPI) | Manual appliance entry, optional live demo |
+| Agent framework | Strands Agents SDK (Python) | Orchestrator + Cost Estimator agents, Agent-as-Tool pattern (hard requirement, fixed regardless of stack) |
+| Model | OpenAI (Stage A) / Amazon Bedrock (Claude, Option A) | Reasoning/tool-use for both agents — swappable via `MODEL_PROVIDER` |
+| State store | Local JSON (Stage A) / Railway Postgres (Option B) / DynamoDB (Option A) | Appliance list, install dates, last-serviced dates, cached lookups |
+| RAG fallback | Chroma (Option B) / Bedrock Knowledge Base + OpenSearch Serverless (Option A) | Vector search over appliance manuals when the structured table has no match |
+| Notifications | Console log (Stage A) / SMTP-Resend (Option B) / SES-SNS (Option A) | Sends reminder + cost-recommendation alerts to the user |
 | Observability | Strands built-in tracing | Shows agent decision path in the demo video |
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and both deployment options.
+
+---
+
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+cp .env.example .env   # then fill in OPENAI_API_KEY (or set MODEL_PROVIDER=bedrock)
+pytest tests/
+```
+
+The structured appliance reference table lives at `data/appliances.json`; tracked household appliances persist locally to `data/local_state.json` (gitignored) via `LocalJsonStorage`.
 
 ---
 
