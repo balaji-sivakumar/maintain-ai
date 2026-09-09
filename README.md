@@ -53,9 +53,17 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and both
 
 ---
 
+## Repo layout
+
+```
+backend/    Strands agents, tools, Storage/Model interfaces (Python)
+frontend/   Live tool-trace judging UI — Next.js on Vercel (not yet scaffolded)
+```
+
 ## Setup
 
 ```bash
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -63,7 +71,7 @@ cp .env.example .env   # then fill in OPENAI_API_KEY (or set MODEL_PROVIDER=bedr
 pytest tests/
 ```
 
-The structured appliance reference table lives at `data/appliances.json`; tracked household appliances persist locally to `data/local_state.json` (gitignored) via `LocalJsonStorage`.
+The structured appliance reference table lives at `backend/data/appliances.json`; tracked household appliances persist locally to `backend/data/local_state.json` (gitignored) via `LocalJsonStorage`.
 
 ---
 

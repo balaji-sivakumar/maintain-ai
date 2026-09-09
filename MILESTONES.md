@@ -23,9 +23,9 @@ Strands' model provider is a swappable object (`Agent(model=..., tools=[...])`),
 
 - [x] Finalize use case: home maintenance predictor with cost estimator sub-agent
 - [x] Finalize architecture (agent design + AWS deployment)
-- [x] Scaffold Strands project locally (`pyproject.toml`, `src/maintain_ai`, `Storage`/`Model` interfaces, `LocalJsonStorage` impl, smoke tests passing)
+- [x] Scaffold Strands project locally (`backend/pyproject.toml`, `backend/src/maintain_ai`, `Storage`/`Model` interfaces, `LocalJsonStorage` impl, smoke tests passing)
 - [ ] Set up LocalStack via Docker for local DynamoDB/S3/SNS/EventBridge *(deferred — only needed if Option A/AWS is picked at the Day 4 checkpoint)*
-- [x] Define structured JSON table — 20 common appliances with service intervals and repair/replacement cost ranges (`data/appliances.json`)
+- [x] Define structured JSON table — 20 common appliances with service intervals and repair/replacement cost ranges (`backend/data/appliances.json`)
 - [ ] *(parallel, non-blocking)* Set up AWS account / AWS Builder ID
 - [ ] *(parallel, non-blocking)* Request $50 AWS credits (Resources tab on Devpost hackathon page)
 
