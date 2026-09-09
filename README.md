@@ -33,51 +33,7 @@ Maintain-AI runs quietly in the background. It tracks a household's appliances, 
 
 ## Architecture
 
-### Agent design (Agent-as-Tool pattern)
-
-**Home Maintenance Agent (orchestrator)**
-- `add_appliance(name, brand, model, install_date)`
-- `check_due_maintenance()`
-- `lookup_maintenance_interval(brand, model)` — structured table first, RAG fallback second
-- `draft_service_reminder(appliance)`
-- `log_completed_service(appliance)`
-- `estimate_cost(appliance_issue)` — invokes the Cost Estimator Agent
-
-**Cost Estimator Agent (sub-agent)**
-- `estimate_repair_cost(appliance, issue)`
-- `estimate_replacement_cost(appliance)`
-- `recommend_repair_or_replace(appliance, age, repair_cost, replacement_cost)`
-
-### Deployment architecture (AWS)
-
-```
-User (web/CLI)
-      |
-      v
-+-------------------------- AWS cloud --------------------------+
-|                                                                 |
-|   API Gateway         EventBridge                              |
-|   (add/update)        (daily trigger)                          |
-|        \                    /                                  |
-|         v                  v                                   |
-|          Agent runtime (Lambda)                                |
-|          Strands agents on Bedrock                              |
-|        /            |              \                           |
-|       v              v               v                          |
-|  DynamoDB        SES / SNS       Knowledge base                |
-|  (appliance      (notifications  (OpenSearch vectors)          |
-|   state)          out)                ^                         |
-|                       |                |                         |
-|                       |           S3 bucket                     |
-|                       |          (appliance manuals)            |
-+-----------------------|--------------------------------------- +
-                         v
-                  User (email/SMS alert)
-```
-
-**Query path:** Lambda checks DynamoDB first (fast path). On a miss, it calls the Bedrock Knowledge Base, which does vector search over ingested manuals and generates a grounded answer. Successful RAG lookups are cached back into DynamoDB so future lookups for the same appliance skip the vector search entirely.
-
-**Ingestion path (separate from the query path):** Appliance manuals are uploaded to S3 and synced into the Knowledge Base — an occasional admin action, not part of the real-time request cycle.
+The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-independent. The deployment stack is an open choice between an AWS-native path and a Railway+Chroma alternative, decided by a Day 4 credit-availability checkpoint. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full agent design, data flow, pluggable interfaces, both deployment diagrams, and the decision criteria.
 
 ---
 
