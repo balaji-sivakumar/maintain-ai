@@ -47,6 +47,7 @@ The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-ind
 | RAG fallback | Chroma (Option B) / Bedrock Knowledge Base + OpenSearch Serverless (Option A) | Vector search over appliance manuals when the structured table has no match |
 | Notifications | Console log (Stage A) / SMTP-Resend (Option B) / SES-SNS (Option A) | Sends reminder + cost-recommendation alerts to the user |
 | Observability | Strands built-in tracing | Shows agent decision path in the demo video |
+| Live judging UI | Next.js on Vercel + WebSocket (FastAPI or API Gateway WebSocket API) | Streams tool-execution events live for judges, stack-independent |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and both deployment options.
 

@@ -44,6 +44,7 @@ Strands' model provider is a swappable object (`Agent(model=..., tools=[...])`),
 - [ ] Wire Agent-as-Tool call from orchestrator to Cost Estimator
 - [ ] Test the full loop: overdue appliance → cost estimate → repair/replace recommendation
 - [ ] Still fully local — no real AWS resources created yet
+- [ ] *(stretch, demo polish — only once the loop above works)* Expose Strands' native tool-execution event stream over a FastAPI WebSocket endpoint
 
 ---
 
@@ -66,7 +67,8 @@ Strands' model provider is a swappable object (`Agent(model=..., tools=[...])`),
 - [ ] Wire SES/SNS notifications (real)
 - [ ] Write README, add MIT/Apache license, confirm setup instructions run clean
 - [ ] Finalize architecture diagram for submission
-- [ ] Record demo video (problem, audience, why it matters, live walkthrough)
+- [ ] *(stretch, demo polish)* Build the live tool-trace frontend (Next.js), deploy to Vercel, point it at the live WebSocket endpoint
+- [ ] Record demo video (problem, audience, why it matters, live walkthrough — feature the live trace UI if it's ready)
 
 ### Day 6 — Sep 14 (deadline 5:00pm PDT)
 
@@ -83,3 +85,4 @@ Strands' model provider is a swappable object (`Agent(model=..., tools=[...])`),
 - A fully working structured-table core loop is a safer fallback than a broken RAG integration if time runs short.
 - Because storage (LocalStack → real AWS) and the model provider (OpenAI → Bedrock) sit behind thin interfaces from Day 1, Stage B is mostly config swaps, not rewrites — deployment can slip a day without threatening Stage A's demo-ability.
 - The Bedrock Knowledge Base (RAG over manuals) has no local or OpenAI substitute — it's real AWS regardless of which model provider is used for agent reasoning.
+- The live tool-trace frontend (Vercel + WebSocket) is presentation polish, not a submission requirement — it's explicitly sequenced after the core agent loop works (Day 3) so it never displaces functional build time, and it's stack-independent (works the same against Option A or Option B's backend).

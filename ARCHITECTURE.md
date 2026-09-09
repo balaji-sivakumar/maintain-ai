@@ -48,6 +48,17 @@ These four seams are where the stack choice lives. Agent and tool code is writte
 | **Notifier** | Delivers reminders/recommendations | SES / SNS | SMTP / Resend, or console log for local dev |
 | **Trigger** | Fires the daily maintenance check | EventBridge | Railway cron |
 | **API surface** | Manual add/update from the user | API Gateway + Lambda | Railway-hosted FastAPI service |
+| **EventStream** | Streams tool-execution events out to the live trace frontend | API Gateway WebSocket API | FastAPI WebSocket endpoint (same Railway service) |
+
+---
+
+## Live tool trace (judging UI)
+
+Strands emits tool-use events natively via async-iterator streaming or callback handlers as the orchestrator runs — no custom tracing needed, just a subscriber. The **EventStream** interface (above) forwards those events to a small **Next.js frontend deployed on Vercel**, which renders the agent's decision path live: `check_due_maintenance → found HVAC due → estimate_cost → Cost Estimator invoked → recommend_repair_or_replace: repair`.
+
+The frontend is stack-independent — the same Vercel app points at whichever WebSocket URL is live (Option A's API Gateway WebSocket API or Option B's Railway FastAPI endpoint), so the Day 4 stack decision doesn't affect it.
+
+This is presentation polish, not a functional requirement — it strengthens the Design/Presentation judging criteria (visualizing "silent until it matters" instead of only narrating it) but is explicitly sequenced *after* the core agent loop (Day 2–3) works, so it never blocks the functional build.
 
 ---
 
@@ -56,26 +67,26 @@ These four seams are where the stack choice lives. Agent and tool code is writte
 ### Option A — AWS-native
 
 ```
-User (web/CLI)
-      |
-      v
-+-------------------------- AWS cloud --------------------------+
-|                                                                 |
-|   API Gateway         EventBridge                              |
-|   (add/update)        (daily trigger)                          |
-|        \                    /                                  |
-|         v                  v                                   |
-|          Agent runtime (Lambda)                                |
-|          Strands agents on Bedrock                              |
-|        /            |              \                           |
-|       v              v               v                          |
-|  DynamoDB        SES / SNS       Knowledge base                |
-|  (appliance      (notifications  (OpenSearch vectors)          |
-|   state)          out)                ^                         |
-|                       |                |                         |
-|                       |           S3 bucket                     |
-|                       |          (appliance manuals)            |
-+-----------------------|--------------------------------------- +
+User (web/CLI)      Judge / demo viewer
+      |                     |
+      v                     v
++---------------- AWS cloud -------------+   +------------------+
+|                                         |   |  Next.js on      |
+|   API Gateway         EventBridge      |   |  Vercel          |
+|   (add/update)        (daily trigger)  |   |  (live tool      |
+|        \                    /          |   |   trace UI)      |
+|         v                  v           |   +--------^---------+
+|          Agent runtime (Lambda)        |            |
+|          Strands agents on Bedrock     |----WebSocket API------
+|        /            |              \   |
+|       v              v               v |
+|  DynamoDB        SES / SNS       Knowledge base
+|  (appliance      (notifications  (OpenSearch vectors)
+|   state)          out)                ^
+|                       |                |
+|                       |           S3 bucket
+|                       |          (appliance manuals)
++-----------------------|----------------+
                          v
                   User (email/SMS alert)
 ```
@@ -85,23 +96,23 @@ Strengthens Technical Implementation score per the hackathon rubric ("Deploying 
 ### Option B — Railway + Chroma
 
 ```
-User (web/CLI)
-      |
-      v
-+---------------------------- Railway ----------------------------+
-|                                                                   |
-|   FastAPI service        Railway cron                            |
-|   (add/update)           (daily trigger)                         |
-|        \                       /                                 |
-|         v                     v                                  |
-|          Agent runtime (long-running process)                    |
-|          Strands agents on OpenAI                                |
-|        /            |                  \                         |
-|       v              v                   v                        |
-|  Postgres         SMTP/Resend        Chroma                      |
-|  (appliance       (notifications     (vector store over          |
-|   state)           out)               appliance manuals)         |
-+-------------------------------------------------------------------+
+User (web/CLI)      Judge / demo viewer
+      |                     |
+      v                     v
++-------------- Railway --------------+   +------------------+
+|                                      |   |  Next.js on      |
+|   FastAPI service    Railway cron   |   |  Vercel          |
+|   (add/update)       (daily trig.)  |   |  (live tool      |
+|        \                  /         |   |   trace UI)      |
+|         v                v          |   +--------^---------+
+|      Agent runtime (long-running)   |            |
+|      Strands agents on OpenAI       |----WebSocket (FastAPI)--
+|        /            |          \    |
+|       v              v           v  |
+|  Postgres      SMTP/Resend    Chroma
+|  (appliance    (notifications (vector store over
+|   state)        out)           appliance manuals)
++--------------------------------------+
                          |
                          v
                   User (email alert)
@@ -115,4 +126,4 @@ No AWS account/credit dependency at all. Fully within the hackathon's hard requi
 
 **Checkpoint: Day 4 (Sep 12).** If AWS account/credits/Bedrock Knowledge Base access isn't in place by then, default to **Option B** for the rest of the build and the submission demo, rather than losing time to AWS setup friction. Either option satisfies every hard submission requirement; Option A only adds rubric points on Technical Implementation, and a working Option B demo beats a stalled Option A integration on every other judged axis (Design, Impact, Creativity, Presentation).
 
-Because agent/tool code is written against the interfaces above, this decision does not require rewriting the orchestrator, the Cost Estimator sub-agent, or any tool logic — only the concrete Model/Storage/VectorStore/Notifier/Trigger implementations passed in at startup.
+Because agent/tool code is written against the interfaces above, this decision does not require rewriting the orchestrator, the Cost Estimator sub-agent, or any tool logic — only the concrete Model/Storage/VectorStore/Notifier/Trigger/EventStream implementations passed in at startup. The Vercel frontend is unaffected either way — it's built once against the EventStream interface and just points at whichever backend WebSocket URL is live.
