@@ -98,3 +98,8 @@ class NeonPostgresStorage(Storage):
         self._conn.execute(
             "UPDATE appliances SET data = %s WHERE id = %s", (Jsonb(updated), appliance_id)
         )
+
+    def delete_appliance(self, appliance_id: str) -> None:
+        result = self._conn.execute("DELETE FROM appliances WHERE id = %s", (appliance_id,))
+        if result.rowcount == 0:
+            raise KeyError(f"No tracked appliance with id {appliance_id!r}")

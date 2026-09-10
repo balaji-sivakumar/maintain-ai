@@ -39,3 +39,7 @@ class Storage(ABC):
     @abstractmethod
     def update_appliance(self, appliance_id: str, **fields: Any) -> None:
         """Update fields on a tracked appliance (e.g. last_serviced_date)."""
+
+    @abstractmethod
+    def delete_appliance(self, appliance_id: str) -> None:
+        """Remove a tracked appliance (e.g. for demo/simulator reset)."""

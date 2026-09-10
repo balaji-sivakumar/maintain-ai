@@ -61,3 +61,15 @@ def test_add_get_update_list_appliance_roundtrip(storage):
 def test_update_unknown_appliance_raises(storage):
     with pytest.raises(KeyError):
         storage.update_appliance("does-not-exist", last_serviced_date="2026-01-01")
+
+
+def test_delete_appliance(storage):
+    appliance_id = storage.add_appliance(
+        {"appliance_type": "hvac_system", "brand": "Carrier", "install_date": "2015-06-01"}
+    )
+
+    storage.delete_appliance(appliance_id)
+
+    assert storage.get_appliance(appliance_id) is None
+    with pytest.raises(KeyError):
+        storage.delete_appliance(appliance_id)

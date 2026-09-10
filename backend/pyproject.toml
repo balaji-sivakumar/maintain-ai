@@ -16,6 +16,16 @@ dependencies = [
     "uvicorn>=0.30.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=1.0.0",
+    "httpx>=0.27.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/agents", "src/impl", "src/interfaces", "src/tools"]
 
@@ -25,3 +35,4 @@ packages = ["src/agents", "src/impl", "src/interfaces", "src/tools"]
 "src/rag.py" = "rag.py"
 "src/runtime.py" = "runtime.py"
 "src/api.py" = "api.py"
+"src/live_trace.py" = "live_trace.py"

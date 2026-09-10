@@ -60,3 +60,9 @@ class LocalJsonStorage(Storage):
             raise KeyError(f"No tracked appliance with id {appliance_id!r}")
         self._state[appliance_id].update(fields)
         self._persist_state()
+
+    def delete_appliance(self, appliance_id: str) -> None:
+        if appliance_id not in self._state:
+            raise KeyError(f"No tracked appliance with id {appliance_id!r}")
+        del self._state[appliance_id]
+        self._persist_state()

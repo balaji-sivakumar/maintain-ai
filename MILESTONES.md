@@ -33,7 +33,7 @@ Build is still split into two stages: **Stage A** is local development against `
 - [x] Add `estimate_repair_cost`, `estimate_replacement_cost`, `recommend_repair_or_replace` (structured data only, deterministic "50% rule" + end-of-life heuristic — `backend/src/tools/cost_tools.py`)
 - [x] Wire Agent-as-Tool call from orchestrator to Cost Estimator (`estimate_cost` tool in `appliance_tools.py`)
 - [x] Test the full loop: overdue appliance → cost estimate → repair/replace recommendation — deterministic heuristic tests in `backend/tests/test_cost_tools.py`; `backend/scripts/demo_day3.py` exercises the real two-agent loop against OpenAI
-- [ ] *(stretch, demo polish — only once the loop above works)* Expose Strands' native tool-execution event stream over a FastAPI WebSocket endpoint
+- [x] Expose Strands' native tool-execution event stream over a FastAPI WebSocket endpoint (`/ws/check`, `backend/src/live_trace.py` + `backend/src/api.py`) — simplifies Strands' raw streaming events (tool-call argument deltas, etc.) down to `tool_call`/`tool_result`/`text_delta`/`done`; tested live end-to-end (7 tool calls, 316 text deltas, correct final multi-appliance report)
 
 ---
 
