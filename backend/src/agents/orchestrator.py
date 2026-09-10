@@ -9,9 +9,9 @@ from datetime import date
 
 from strands import Agent
 
-from maintain_ai.interfaces.storage import Storage
-from maintain_ai.model import get_model
-from maintain_ai.tools.appliance_tools import create_orchestrator_tools
+from interfaces.storage import Storage
+from model import get_model
+from tools.appliance_tools import create_orchestrator_tools
 
 SYSTEM_PROMPT = """You are Maintain-AI, a quiet background agent that tracks a household's \
 appliances and their maintenance schedules.

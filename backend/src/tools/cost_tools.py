@@ -9,8 +9,8 @@ from datetime import date
 
 from strands import tool
 
-from maintain_ai.dates import age_years, parse_date
-from maintain_ai.interfaces.storage import Storage
+from dates import age_years, parse_date
+from interfaces.storage import Storage
 
 # "50% rule": if repair cost is at least half of replacement cost, replacing
 # is usually the better value — a common rule of thumb for household repairs.

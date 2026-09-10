@@ -11,8 +11,8 @@ from datetime import date
 
 from strands import tool
 
-from maintain_ai.dates import add_months, parse_date
-from maintain_ai.interfaces.storage import Storage
+from dates import add_months, parse_date
+from interfaces.storage import Storage
 
 
 def create_orchestrator_tools(storage: Storage, today: date | None = None) -> list:
@@ -113,7 +113,7 @@ def create_orchestrator_tools(storage: Storage, today: date | None = None) -> li
         Delegates to the Cost Estimator sub-agent — call this for appliances
         that check_due_maintenance flagged as due or overdue.
         """
-        from maintain_ai.agents.cost_estimator import build_cost_estimator
+        from agents.cost_estimator import build_cost_estimator
 
         appliance = storage.get_appliance(appliance_id)
         if not appliance:

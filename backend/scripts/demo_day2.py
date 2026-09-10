@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from maintain_ai.agents.orchestrator import build_orchestrator
-from maintain_ai.impl.local_storage import LocalJsonStorage
+from agents.orchestrator import build_orchestrator
+from impl.local_storage import LocalJsonStorage
 
 
 def main() -> None:

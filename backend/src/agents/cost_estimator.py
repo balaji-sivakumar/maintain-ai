@@ -8,9 +8,9 @@ from datetime import date
 
 from strands import Agent
 
-from maintain_ai.interfaces.storage import Storage
-from maintain_ai.model import get_model
-from maintain_ai.tools.cost_tools import create_cost_estimator_tools
+from interfaces.storage import Storage
+from model import get_model
+from tools.cost_tools import create_cost_estimator_tools
 
 SYSTEM_PROMPT = """You are the Cost Estimator sub-agent for Maintain-AI. You are called by \
 another agent, not the end user directly.

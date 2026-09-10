@@ -14,7 +14,7 @@ Build is still split into two stages: **Stage A** is local development against `
 
 - [x] Finalize use case: home maintenance predictor with cost estimator sub-agent
 - [x] Finalize architecture (agent design + deployment options)
-- [x] Scaffold Strands project locally (`backend/pyproject.toml`, `backend/src/maintain_ai`, `Storage`/`Model` interfaces, `LocalJsonStorage` impl, smoke tests passing)
+- [x] Scaffold Strands project locally (`backend/pyproject.toml`, `backend/src`, `Storage`/`Model` interfaces, `LocalJsonStorage` impl, smoke tests passing)
 - [x] Define structured JSON table — 20 common appliances with service intervals and repair/replacement cost ranges (`backend/data/appliances.json`)
 - [x] Separate repo into `backend/` and `frontend/`
 - [ ] *(parallel, non-blocking)* Set up AWS account / AWS Builder ID — still required for the submission form
@@ -22,15 +22,15 @@ Build is still split into two stages: **Stage A** is local development against `
 
 ### Day 2 — Sep 10
 
-- [x] Build `add_appliance`, `check_due_maintenance`, `log_completed_service`, `lookup_maintenance_interval`, `draft_service_reminder` tools against `LocalJsonStorage` (`backend/src/maintain_ai/tools/appliance_tools.py`)
-- [x] Wire orchestrator agent against structured table only, no RAG yet (`backend/src/maintain_ai/agents/orchestrator.py`), model calls via `OpenAIModel`
+- [x] Build `add_appliance`, `check_due_maintenance`, `log_completed_service`, `lookup_maintenance_interval`, `draft_service_reminder` tools against `LocalJsonStorage` (`backend/src/tools/appliance_tools.py`)
+- [x] Wire orchestrator agent against structured table only, no RAG yet (`backend/src/agents/orchestrator.py`), model calls via `OpenAIModel`
 - [x] Test end-to-end locally with mock appliance data — deterministic tool-level tests in `backend/tests/test_appliance_tools.py` (due-date math, no LLM required)
 - [x] Verify "silent when nothing due, speaks up when due" behavior — covered by the same tests; `backend/scripts/demo_day2.py` runs the real orchestrator end-to-end against OpenAI for a live check (needs `OPENAI_API_KEY` in `backend/.env`, not run automatically)
 
 ### Day 3 — Sep 11
 
-- [x] Build Cost Estimator sub-agent (`backend/src/maintain_ai/agents/cost_estimator.py`)
-- [x] Add `estimate_repair_cost`, `estimate_replacement_cost`, `recommend_repair_or_replace` (structured data only, deterministic "50% rule" + end-of-life heuristic — `backend/src/maintain_ai/tools/cost_tools.py`)
+- [x] Build Cost Estimator sub-agent (`backend/src/agents/cost_estimator.py`)
+- [x] Add `estimate_repair_cost`, `estimate_replacement_cost`, `recommend_repair_or_replace` (structured data only, deterministic "50% rule" + end-of-life heuristic — `backend/src/tools/cost_tools.py`)
 - [x] Wire Agent-as-Tool call from orchestrator to Cost Estimator (`estimate_cost` tool in `appliance_tools.py`)
 - [x] Test the full loop: overdue appliance → cost estimate → repair/replace recommendation — deterministic heuristic tests in `backend/tests/test_cost_tools.py`; `backend/scripts/demo_day3.py` exercises the real two-agent loop against OpenAI
 - [ ] *(stretch, demo polish — only once the loop above works)* Expose Strands' native tool-execution event stream over a FastAPI WebSocket endpoint

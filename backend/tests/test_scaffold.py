@@ -1,7 +1,7 @@
 import pytest
 
-from maintain_ai.impl.local_storage import LocalJsonStorage
-from maintain_ai.model import get_model
+from impl.local_storage import LocalJsonStorage
+from model import get_model
 
 
 def test_reference_table_loads_and_has_20_plus_appliances():

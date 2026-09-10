@@ -9,10 +9,10 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from maintain_ai.interfaces.storage import Storage
+from interfaces.storage import Storage
 
-DEFAULT_REFERENCE_PATH = Path(__file__).resolve().parents[3] / "data" / "appliances.json"
-DEFAULT_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "local_state.json"
+DEFAULT_REFERENCE_PATH = Path(__file__).resolve().parents[2] / "data" / "appliances.json"
+DEFAULT_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "local_state.json"
 
 
 class LocalJsonStorage(Storage):

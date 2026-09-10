@@ -1,7 +1,7 @@
 from datetime import date
 
-from maintain_ai.impl.local_storage import LocalJsonStorage
-from maintain_ai.tools.appliance_tools import create_orchestrator_tools
+from impl.local_storage import LocalJsonStorage
+from tools.appliance_tools import create_orchestrator_tools
 
 
 def _make_tools(tmp_path, today=None):

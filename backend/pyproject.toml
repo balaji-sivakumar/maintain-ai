@@ -13,4 +13,8 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/maintain_ai"]
+packages = ["src/agents", "src/impl", "src/interfaces", "src/tools"]
+include = ["src/dates.py", "src/model.py"]
+
+[tool.hatch.build.targets.wheel.sources]
+src = ""

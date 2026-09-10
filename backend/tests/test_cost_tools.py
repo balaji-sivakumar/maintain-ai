@@ -1,8 +1,8 @@
 import shutil
 from datetime import date
 
-from maintain_ai.impl.local_storage import DEFAULT_REFERENCE_PATH, LocalJsonStorage
-from maintain_ai.tools.cost_tools import create_cost_estimator_tools
+from impl.local_storage import DEFAULT_REFERENCE_PATH, LocalJsonStorage
+from tools.cost_tools import create_cost_estimator_tools
 
 
 def _make_tools(tmp_path, today=None):
