@@ -87,12 +87,25 @@ See `backend/DEPLOY.md` and `frontend/README.md` for the full deployment setup (
 
 ---
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
 ## Submission requirements checklist
 
-- [ ] Text description (problem, audience, how it works)
-- [ ] Public code repo (MIT or Apache license, README, setup instructions)
-- [ ] Architecture diagram
-- [ ] Demo video (max 5 min): problem, who it's for, why it matters
-- [ ] AWS Builder ID
+Per the [hackathon rules](https://agentsforhumans.devpost.com/rules):
+
+- [x] Built with the Strands Agents SDK (the one hard technical requirement)
+- [x] Public code repo (GitHub), MIT license visible at the repo root, README, setup instructions
+- [x] Architecture diagram — see [ARCHITECTURE.md](ARCHITECTURE.md)
+- [x] Project runs consistently and does real end-to-end work (tracks appliances, delegates to a real Cost Estimator sub-agent, sends real email notifications) — not just chat
 - [x] Optional live demo link — https://maintain-ai-dashboard.vercel.app
-- [ ] (Bonus) Build story published on builder.aws.com, titled with "Agents for Humans"
+- [ ] Text description (problem, audience, how it works) — draft ready, needs pasting into the Devpost form
+- [ ] Demo video (max 5 min, uploaded to YouTube/Vimeo, public): problem, audience, why it matters, working end-to-end walkthrough
+- [ ] AWS account (signin.aws.amazon.com) — separate "How to Enter" step
+- [ ] AWS Builder ID — separate submission-form requirement
+- [ ] Select track on the Devpost form (Everyday Agents)
+- [ ] Submit on Devpost before Sep 14, 2026, 5:00pm PT
+- [ ] (Bonus, up to 0.6 pts) Build story published on builder.aws.com, titled with "Agents for Humans"
