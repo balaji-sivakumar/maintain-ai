@@ -1,86 +1,90 @@
 # Deploying Maintain-AI (Railway + Neon + Chroma)
 
-Status: Neon is set up and tested live. Chroma Cloud and Railway need your
-account/login to finish — everything on the repo side is ready.
+**Status: fully deployed and live.**
+
+- Web service: https://web-production-91b0a.up.railway.app (`/health` returns `{"status":"ok"}`)
+- Cron service: runs `scripts/cron_check.py` daily at 13:00 UTC, confirmed to run-and-exit correctly (not a persistent process)
+- Both verified end-to-end against real Neon Postgres, Chroma Cloud, and OpenAI — not just health checks
 
 ---
 
 ## 1. Neon — done
 
-`DATABASE_URL` is already in `backend/.env` (gitignored) and verified against
-the live database — `NeonPostgresStorage` auto-creates its tables and seeds
-the 20-appliance reference table on first connect. Nothing further needed
-here unless you want to reset/rotate the password from the Neon dashboard.
+`DATABASE_URL` is in `backend/.env` (gitignored) and set as an env var on
+both Railway services. `NeonPostgresStorage` auto-creates its tables and
+seeds the 20-appliance reference table on first connect.
 
-## 2. Chroma Cloud — needs your account
+## 2. Chroma Cloud — done
 
-`ChromaVectorStore` now uses Chroma Cloud when `CHROMA_API_KEY` is set,
-falling back to a local `PersistentClient` (writes to `data/chroma/`) only
-when it isn't — so local dev/tests still work with no Chroma Cloud account,
-but the deployed services need one.
+`ChromaVectorStore` uses Chroma Cloud (`CHROMA_API_KEY`/`CHROMA_TENANT`/`CHROMA_DATABASE`,
+also in `backend/.env` and set on both Railway services), falling back to a
+local `PersistentClient` only when those aren't set (local dev without a
+Chroma Cloud account). `scripts/ingest_manuals.py` has already been run
+against the real Chroma Cloud instance — the `appliance_manuals` collection
+has all 3 manuals.
 
-1. Sign up at trychroma.com
-2. Create a database (a default tenant/database is created for you)
-3. From the dashboard, get:
-   - **API key**
-   - **Tenant** (UUID or slug shown in the dashboard)
-   - **Database** name
-4. Put these in `backend/.env` for local testing against Chroma Cloud:
-   ```
-   CHROMA_API_KEY=...
-   CHROMA_TENANT=...
-   CHROMA_DATABASE=...
-   ```
-5. Once set, run `python scripts/ingest_manuals.py` once (locally or from
-   Railway) to populate the cloud collection — after that it persists
-   independently of Railway's filesystem, so no Volume is needed.
+## 3. Railway — done
 
-## 3. Railway — needs your account
+Project `maintain-ai`, two services, both connected to
+`balaji-sivakumar/maintain-ai` on GitHub with Root Directory `/backend`:
 
-1. Sign up at railway.app, connect GitHub
-2. **New Project → Deploy from GitHub repo** → `balaji-sivakumar/maintain-ai`
-3. This repo is a monorepo (backend/frontend), so for **every** service you
-   create from it: Settings → **Root Directory** → `backend`
-4. Create **two services** from the same repo:
+| Service | Dockerfile | Purpose |
+|---|---|---|
+| `web` | `Dockerfile` (CMD: `uvicorn api:app --host 0.0.0.0 --port $PORT`) | `/health`, `/appliances`, `/appliances/{id}/service`, `/check` |
+| `cron` | `Dockerfile.cron` (CMD: `python scripts/cron_check.py`) | Runs once daily at 13:00 UTC, exits |
 
-   **Web service** (handles add/update + manual checks)
-   - Root Directory: `backend`
-   - Settings → Config-as-code Path: `railway.toml` (already in the repo —
-     sets the start command to `uvicorn api:app --host 0.0.0.0 --port $PORT`
-     and a `/health` healthcheck)
+Env vars (`MODEL_PROVIDER`, `OPENAI_API_KEY`, `DATABASE_URL`, `CHROMA_API_KEY`,
+`CHROMA_TENANT`, `CHROMA_DATABASE`) are set on both services.
 
-   **Cron service** (daily maintenance check)
-   - Root Directory: `backend`
-   - Settings → Config-as-code Path: `railway.cron.toml` (sets the start
-     command to `python scripts/cron_check.py` and `cronSchedule = "0 13 * * *"`
-     — 1pm UTC daily; edit the cron expression there if you want a different
-     time)
+### How this was actually done (important for future redeploys)
 
-   Two separate config files because Railway's config-as-code always
-   overrides dashboard-set Start Commands — pointing each service at its own
-   file is the supported way to run two different commands from one repo.
+The original plan was two `railway.toml`-style config-as-code files, one per
+service, each set as that service's "Config-as-code Path" in the dashboard.
+That path turned out to be blocked — Railway now rejects new attempts to set
+a per-service config file path (`railwayConfigFile`), since config-as-code
+(`railway.json`/`railway.toml`) is being phased out in favor of
+`.railway/railway.ts` (which doesn't yet support cron schedules, so it
+wasn't usable here either).
 
-5. Environment variables — set these on **both** services:
+What worked instead: **two separate Dockerfiles** (`Dockerfile` for the web
+service, `Dockerfile.cron` for the cron service — the only difference is the
+`CMD`), with each service's `dockerfilePath`, `cronSchedule`, and
+`restartPolicyType` **persisted directly via Railway's GraphQL API**
+(`serviceInstanceUpdate`), rather than read from a config file per deploy.
+This matters because it means:
 
-   | Variable | Value |
-   |---|---|
-   | `MODEL_PROVIDER` | `openai` |
-   | `OPENAI_API_KEY` | your key |
-   | `DATABASE_URL` | the Neon connection string from `backend/.env` |
-   | `CHROMA_API_KEY` | from trychroma.com dashboard |
-   | `CHROMA_TENANT` | from trychroma.com dashboard |
-   | `CHROMA_DATABASE` | from trychroma.com dashboard |
+- `backend/railway.toml` / `backend/railway.cron.toml` are now just
+  **reference documentation** of intent — they're not what's actually
+  driving either service's settings. They still work as config-as-code for
+  a plain `railway up` (with a deprecation warning), but the services'
+  *persisted* settings are what take effect either way.
+- **Future redeploys just work** — either `git push` to `main` (both
+  services are GitHub-connected) or `railway up backend --path-as-root --service <web|cron>`
+  from the repo root will rebuild using the correct Dockerfile per service,
+  without needing to repeat any of the swap-file or API steps above.
+- If you ever need to change the cron schedule, restart policy, or health
+  check path, do it the same way: `railway api` with a `serviceInstanceUpdate`
+  mutation (or ask me to) — editing `railway.cron.toml` alone won't do
+  anything for these two services anymore.
 
-   No Volume needed now that Chroma Cloud is doing the persisting.
+### Redeploying after a code change
 
-6. Deploy. Check the web service's `/health` endpoint once it's up.
+```bash
+cd backend
+railway up --service web    # or: git push, once GitHub auto-deploy is confirmed working
+railway up --service cron
+```
+
+(Run from the repo root with `railway up backend --path-as-root --service <name>`
+if not already linked/cd'd appropriately — see `railway status` to check the
+current link.)
 
 ## Not yet wired
 
 - **Notifications (SMTP/Resend):** `/check` and the cron job currently just
   produce the agent's text response — there's no email/SMS delivery yet.
-  Say the word if you want this wired before the demo; it needs its own
-  credential (Resend API key, or SMTP host/user/pass).
+  Say the word if you want this wired; it needs its own credential (Resend
+  API key, or SMTP host/user/pass).
 - Real manufacturer manuals — `data/manuals/*.txt` are mock excerpts I wrote,
   not curated PDFs. Fine for proving the pipeline; swap them before the
   actual demo if you have real ones.
