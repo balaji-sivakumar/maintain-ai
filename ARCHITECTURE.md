@@ -46,7 +46,7 @@ These four seams are where the stack choice lives. Agent and tool code is writte
 |---|---|---|---|
 | **Model** | Agent reasoning + tool-use | `BedrockModel` (Claude) | `OpenAIModel` |
 | **Storage** | Appliance state, structured interval/cost table, RAG cache | DynamoDB | Neon Postgres (serverless; `LocalJsonStorage`/SQLite for local dev) |
-| **VectorStore** | Embeddings over appliance manuals for RAG fallback | Bedrock Knowledge Base + OpenSearch Serverless | Chroma (self-hosted or Chroma Cloud) |
+| **VectorStore** | Embeddings over appliance manuals for RAG fallback | Bedrock Knowledge Base + OpenSearch Serverless | Chroma Cloud (local `PersistentClient` fallback when no Chroma Cloud credentials are set, e.g. local dev) |
 | **Notifier** | Delivers reminders/recommendations | SES / SNS | SMTP / Resend, or console log for local dev |
 | **Trigger** | Fires the daily maintenance check | EventBridge | Railway cron |
 | **API surface** | Manual add/update from the user | API Gateway + Lambda | Railway-hosted FastAPI service |
@@ -109,18 +109,17 @@ User (web/CLI)      Judge / demo viewer
 |         v                v          |   +--------^---------+
 |      Agent runtime (long-running)   |            |
 |      Strands agents on OpenAI       |----WebSocket (FastAPI)--
-|        /                        \   |
-|       v                          v  |
-|   Chroma                    SMTP/Resend
-|   (vector store over        (notifications out)
-|    appliance manuals)               |
-+--------------------|-----------------+
-                      v
-              Neon Postgres (external, serverless)
-              (appliance state, structured table, RAG cache)
-                      |
-                      v
-               User (email alert)
+|                  |                  |
+|                  v                  |
+|             SMTP/Resend             |
+|            (notifications)          |
++------------------|-------------------+
+                    v
+             User (email alert)
+
+External services (outside Railway, called over the network):
+  - Chroma Cloud    — vector store over appliance manuals
+  - Neon Postgres   — appliance state, structured table, RAG cache
 ```
 
 No AWS account/credit dependency at all. Fully within the hackathon's hard requirement (Strands Agents SDK) since AWS usage is optional, not required, per the rules. **This is the path being built.**

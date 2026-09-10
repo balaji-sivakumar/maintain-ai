@@ -54,7 +54,8 @@ Build is still split into two stages: **Stage A** is local development against `
 - [x] Wrap the agent runtime + manual add/update API in a FastAPI service (`backend/src/api.py`: `/health`, `/appliances`, `/appliances/{id}/service`, `/check`) — live-tested end-to-end with `TestClient` against real Neon + OpenAI
 - [x] `backend/scripts/cron_check.py` — the daily-check entrypoint that runs and exits (Railway cron's requirement), sharing storage/vector-store construction with the API via `backend/src/runtime.py`
 - [x] `backend/railway.toml` (web service) and `backend/railway.cron.toml` (cron service, separate config-as-code path since Railway's code config overrides dashboard Start Commands) — see `backend/DEPLOY.md` for the full setup walkthrough
-- [ ] *(needs your Railway login)* Actually create the Railway project + two services per `backend/DEPLOY.md`, set env vars, deploy
+- [x] Switched `ChromaVectorStore` to Chroma Cloud (`CHROMA_API_KEY`/`CHROMA_TENANT`/`CHROMA_DATABASE`), falling back to the Day 4 local `PersistentClient` only when those aren't set — so it persists independently of Railway's ephemeral filesystem with no Volume needed
+- [ ] *(needs your accounts)* Sign up for Chroma Cloud and create the Railway project + two services per `backend/DEPLOY.md`, set env vars, deploy
 - [ ] Wire notifications via SMTP/Resend (swap out the plain-text `/check` response used so far) — needs its own credential, not yet requested
 - [ ] Write README, add MIT/Apache license, confirm setup instructions run clean
 - [ ] Finalize architecture diagram for submission

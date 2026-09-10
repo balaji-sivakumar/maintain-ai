@@ -1,7 +1,7 @@
 # Deploying Maintain-AI (Railway + Neon + Chroma)
 
-Status: Neon is set up and tested live. Railway needs your account/login to
-finish — everything on the repo side is ready.
+Status: Neon is set up and tested live. Chroma Cloud and Railway need your
+account/login to finish — everything on the repo side is ready.
 
 ---
 
@@ -12,23 +12,28 @@ the live database — `NeonPostgresStorage` auto-creates its tables and seeds
 the 20-appliance reference table on first connect. Nothing further needed
 here unless you want to reset/rotate the password from the Neon dashboard.
 
-## 2. Chroma — self-hosted via a Railway Volume (default choice)
+## 2. Chroma Cloud — needs your account
 
-`ChromaVectorStore` uses `chromadb`'s local `PersistentClient`, writing to
-`data/chroma/` (path configurable via `CHROMA_PERSIST_PATH`). Railway's
-filesystem is ephemeral, so without a mounted Volume, ingested manuals are
-lost on every redeploy/restart.
+`ChromaVectorStore` now uses Chroma Cloud when `CHROMA_API_KEY` is set,
+falling back to a local `PersistentClient` (writes to `data/chroma/`) only
+when it isn't — so local dev/tests still work with no Chroma Cloud account,
+but the deployed services need one.
 
-**Going with this by default** since it needs no new account — if you'd
-rather use Chroma Cloud instead (more robust, survives service deletion, but
-needs a trychroma.com account + API key and a small code change to
-`ChromaVectorStore`), let me know and I'll switch it.
-
-Setup on the web service (Railway dashboard):
-1. Settings → Volumes → add a volume, mount path `/app/data/chroma`
-2. Add env var `CHROMA_PERSIST_PATH=/app/data/chroma`
-3. After first deploy, run `python scripts/ingest_manuals.py` once via
-   Railway's shell (or a one-off Railway CLI command) to populate it
+1. Sign up at trychroma.com
+2. Create a database (a default tenant/database is created for you)
+3. From the dashboard, get:
+   - **API key**
+   - **Tenant** (UUID or slug shown in the dashboard)
+   - **Database** name
+4. Put these in `backend/.env` for local testing against Chroma Cloud:
+   ```
+   CHROMA_API_KEY=...
+   CHROMA_TENANT=...
+   CHROMA_DATABASE=...
+   ```
+5. Once set, run `python scripts/ingest_manuals.py` once (locally or from
+   Railway) to populate the cloud collection — after that it persists
+   independently of Railway's filesystem, so no Volume is needed.
 
 ## 3. Railway — needs your account
 
@@ -62,7 +67,11 @@ Setup on the web service (Railway dashboard):
    | `MODEL_PROVIDER` | `openai` |
    | `OPENAI_API_KEY` | your key |
    | `DATABASE_URL` | the Neon connection string from `backend/.env` |
-   | `CHROMA_PERSIST_PATH` | `/app/data/chroma` (only needed on the web service, since that's the one ingesting/serving RAG) |
+   | `CHROMA_API_KEY` | from trychroma.com dashboard |
+   | `CHROMA_TENANT` | from trychroma.com dashboard |
+   | `CHROMA_DATABASE` | from trychroma.com dashboard |
+
+   No Volume needed now that Chroma Cloud is doing the persisting.
 
 6. Deploy. Check the web service's `/health` endpoint once it's up.
 
