@@ -11,8 +11,13 @@ from typing import Any, Optional
 
 from interfaces.storage import Storage
 
-DEFAULT_REFERENCE_PATH = Path(__file__).resolve().parents[2] / "data" / "appliances.json"
-DEFAULT_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "local_state.json"
+# Resolved against the process's working directory, not __file__ — in a real
+# installed package (e.g. deployed on Railway), __file__ points into
+# site-packages, which has no data/ directory. Every entrypoint (pytest,
+# scripts/, and Railway's configured Root Directory) runs with cwd at
+# backend/, so this resolves correctly everywhere it's actually used.
+DEFAULT_REFERENCE_PATH = Path.cwd() / "data" / "appliances.json"
+DEFAULT_STATE_PATH = Path.cwd() / "data" / "local_state.json"
 
 
 class LocalJsonStorage(Storage):

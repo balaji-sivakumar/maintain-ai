@@ -50,15 +50,18 @@ Build is still split into two stages: **Stage A** is local development against `
 
 ### Day 5 — Sep 13
 
-- [ ] Provision a Neon Postgres database and add a `NeonPostgresStorage` implementation of the `Storage` interface (or keep `LocalJsonStorage` for the demo if the migration isn't worth the time)
-- [ ] Wrap the agent runtime + manual add/update API in a FastAPI service
-- [ ] Deploy the FastAPI service to Railway
-- [ ] Wire Railway cron for the daily maintenance-check trigger
-- [ ] Wire notifications via SMTP/Resend (swap out the console-log `Notifier` used in Stage A)
+- [x] Provision a Neon Postgres database and add a `NeonPostgresStorage` implementation of the `Storage` interface (`backend/src/impl/neon_postgres_storage.py`) — live-tested against the real database (schema creation, seed-on-empty, JSONB round-trip, full FastAPI request cycle)
+- [x] Wrap the agent runtime + manual add/update API in a FastAPI service (`backend/src/api.py`: `/health`, `/appliances`, `/appliances/{id}/service`, `/check`) — live-tested end-to-end with `TestClient` against real Neon + OpenAI
+- [x] `backend/scripts/cron_check.py` — the daily-check entrypoint that runs and exits (Railway cron's requirement), sharing storage/vector-store construction with the API via `backend/src/runtime.py`
+- [x] `backend/railway.toml` (web service) and `backend/railway.cron.toml` (cron service, separate config-as-code path since Railway's code config overrides dashboard Start Commands) — see `backend/DEPLOY.md` for the full setup walkthrough
+- [ ] *(needs your Railway login)* Actually create the Railway project + two services per `backend/DEPLOY.md`, set env vars, deploy
+- [ ] Wire notifications via SMTP/Resend (swap out the plain-text `/check` response used so far) — needs its own credential, not yet requested
 - [ ] Write README, add MIT/Apache license, confirm setup instructions run clean
 - [ ] Finalize architecture diagram for submission
 - [ ] *(stretch, demo polish)* Build the live tool-trace frontend (Next.js), deploy to Vercel, point it at the Railway WebSocket endpoint
 - [ ] Record demo video (problem, audience, why it matters, live walkthrough — feature the live trace UI if it's ready)
+
+**Packaging bug caught and fixed along the way:** the flat `src/` layout's standalone modules (`dates.py`, `model.py`, `rag.py`, `runtime.py`, `api.py`) were silently excluded from the actual built wheel — `pip install -e .` (editable) masked this since it works differently, so it only surfaced when testing a real `pip install .` in a fresh venv, which is what Railway's build does. Fixed via `force-include` in `pyproject.toml`. Also fixed: `DEFAULT_REFERENCE_PATH`/`DEFAULT_STATE_PATH`/`DEFAULT_PERSIST_PATH` were computed from `__file__`, which resolves inside `site-packages` for an installed wheel instead of the actual `backend/data/` — switched to `Path.cwd()`-relative, verified by simulating a Railway-style install + working directory.
 
 ### Day 6 — Sep 14 (deadline 5:00pm PDT)
 

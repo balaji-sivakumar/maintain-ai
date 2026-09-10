@@ -1,8 +1,11 @@
 import shutil
 
 import pytest
+from dotenv import load_dotenv
 
 from impl.local_storage import DEFAULT_REFERENCE_PATH, LocalJsonStorage
+
+load_dotenv()  # makes DATABASE_URL/OPENAI_API_KEY visible to skipif-guarded live tests
 
 
 @pytest.fixture

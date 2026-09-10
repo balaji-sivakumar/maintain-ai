@@ -15,7 +15,10 @@ from chromadb.utils import embedding_functions
 
 from interfaces.vector_store import VectorStore
 
-DEFAULT_PERSIST_PATH = Path(__file__).resolve().parents[2] / "data" / "chroma"
+# cwd-relative, not __file__-relative — see local_storage.py's DEFAULT_REFERENCE_PATH
+# comment for why. On Railway this must be a mounted Volume path, or the
+# ingested manuals are lost on every redeploy/restart (ephemeral filesystem).
+DEFAULT_PERSIST_PATH = Path(os.environ.get("CHROMA_PERSIST_PATH", Path.cwd() / "data" / "chroma"))
 COLLECTION_NAME = "appliance_manuals"
 
 

@@ -1,0 +1,7 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python scripts/cron_check.py"
+cronSchedule = "0 13 * * *"
+restartPolicyType = "NEVER"
