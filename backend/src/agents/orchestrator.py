@@ -1,15 +1,18 @@
-"""Home Maintenance Agent (orchestrator) — Day 2/3 scope.
+"""Home Maintenance Agent (orchestrator) — Day 2/3/4 scope.
 
-Wired against the structured reference table only; no RAG fallback yet
-(Day 4). The Cost Estimator sub-agent (Day 3) is invoked via the
-estimate_cost tool, an Agent-as-Tool call.
+Structured reference table first, RAG fallback second (Day 4, via an
+optional vector_store — pass None to stay structured-table-only, e.g. if
+Chroma isn't set up for a given run). The Cost Estimator sub-agent (Day 3)
+is invoked via the estimate_cost tool, an Agent-as-Tool call.
 """
 
 from datetime import date
+from typing import Optional
 
 from strands import Agent
 
 from interfaces.storage import Storage
+from interfaces.vector_store import VectorStore
 from model import get_model
 from tools.appliance_tools import create_orchestrator_tools
 
@@ -29,9 +32,11 @@ estimate_cost for that data, and say so plainly if a tool returns nothing.
 """
 
 
-def build_orchestrator(storage: Storage, today: date | None = None) -> Agent:
+def build_orchestrator(
+    storage: Storage, vector_store: Optional[VectorStore] = None, today: date | None = None
+) -> Agent:
     return Agent(
         model=get_model(),
-        tools=create_orchestrator_tools(storage, today=today),
+        tools=create_orchestrator_tools(storage, vector_store=vector_store, today=today),
         system_prompt=SYSTEM_PROMPT,
     )

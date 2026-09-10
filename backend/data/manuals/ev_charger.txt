@@ -1,0 +1,18 @@
+Level 2 Home EV Charger — Owner's Manual (excerpt)
+
+Maintenance: Inspect the charging cable, connector, and mounting bracket for
+wear or damage once a year. A qualified electrician should re-torque the
+electrical panel connections annually as part of routine home electrical
+maintenance. No internal parts are user-serviceable.
+
+Expected service life: Most home EV chargers are designed for approximately
+10 years of regular use before internal components (relays, connectors)
+degrade enough to warrant replacement.
+
+Repair costs: Common repairs include cable replacement ($150–$400) or
+connector/relay replacement by a licensed electrician ($200–$600), depending
+on labor rates in your area.
+
+Replacement costs: A new Level 2 home charging unit plus professional
+installation typically runs $500–$2,200, depending on amperage, brand, and
+whether existing wiring/panel capacity is sufficient.

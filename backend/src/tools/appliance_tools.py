@@ -1,23 +1,59 @@
 """Orchestrator tools: add_appliance, check_due_maintenance, log_completed_service,
-lookup_maintenance_interval, draft_service_reminder (Day 2), and estimate_cost,
-which delegates to the Cost Estimator sub-agent (Day 3, Agent-as-Tool pattern).
+lookup_maintenance_interval, draft_service_reminder (Day 2), estimate_cost, which
+delegates to the Cost Estimator sub-agent (Day 3, Agent-as-Tool pattern), and the
+Day 4 RAG fallback in lookup_maintenance_interval.
 
-Built as a factory (`create_orchestrator_tools`) so tools close over a
-concrete Storage implementation without the Strands Agent needing to know
-which one — matches the pluggable-interface design in ARCHITECTURE.md.
+Built as a factory (`create_orchestrator_tools`) so tools close over concrete
+Storage/VectorStore implementations without the Strands Agent needing to know
+which ones — matches the pluggable-interface design in ARCHITECTURE.md.
 """
 
 from datetime import date
+from typing import Callable, Optional
 
 from strands import tool
 
 from dates import add_months, parse_date
 from interfaces.storage import Storage
+from interfaces.vector_store import VectorStore
 
 
-def create_orchestrator_tools(storage: Storage, today: date | None = None) -> list:
+def create_orchestrator_tools(
+    storage: Storage,
+    vector_store: Optional[VectorStore] = None,
+    extract_reference_data: Optional[Callable[[str, list[str]], Optional[dict]]] = None,
+    today: date | None = None,
+) -> list:
     def _today() -> date:
         return today or date.today()
+
+    def _extract(appliance_type: str, excerpts: list[str]) -> Optional[dict]:
+        if extract_reference_data is not None:
+            return extract_reference_data(appliance_type, excerpts)
+        from rag import extract_reference_data as default_extract_reference_data
+
+        return default_extract_reference_data(appliance_type, excerpts)
+
+    def _lookup_reference(appliance_type: str) -> Optional[dict]:
+        """Structured table first, RAG fallback second — the same logic the
+        lookup_maintenance_interval tool exposes, reused internally so
+        check_due_maintenance and draft_service_reminder also pick up
+        RAG-only appliance types."""
+        reference = storage.get_reference_data(appliance_type)
+        if reference:
+            return reference
+
+        if not vector_store:
+            return None
+
+        excerpts = vector_store.query(appliance_type)
+        if not excerpts:
+            return None
+
+        extracted = _extract(appliance_type, excerpts)
+        if extracted:
+            storage.cache_reference_data(appliance_type, extracted)
+        return extracted
 
     @tool
     def add_appliance(appliance_type: str, brand: str, model: str, install_date: str) -> dict:
@@ -43,9 +79,13 @@ def create_orchestrator_tools(storage: Storage, today: date | None = None) -> li
     def lookup_maintenance_interval(appliance_type: str) -> dict | None:
         """Look up service interval and cost range data for an appliance type.
 
-        Checks the structured reference table. Returns None on a miss.
+        Checks the structured reference table first. On a miss, falls back to
+        RAG over appliance manuals (if a vector store is configured) and
+        caches a successful extraction back into the reference table so the
+        same lookup skips RAG next time. Returns None if nothing is found
+        either way.
         """
-        return storage.get_reference_data(appliance_type)
+        return _lookup_reference(appliance_type)
 
     @tool
     def check_due_maintenance() -> list[dict]:
@@ -55,7 +95,7 @@ def create_orchestrator_tools(storage: Storage, today: date | None = None) -> li
         """
         due = []
         for appliance in storage.list_appliances():
-            reference = storage.get_reference_data(appliance["appliance_type"])
+            reference = _lookup_reference(appliance["appliance_type"])
             if not reference or not reference.get("service_interval_months"):
                 continue
 
@@ -84,7 +124,7 @@ def create_orchestrator_tools(storage: Storage, today: date | None = None) -> li
         if not appliance:
             return f"No tracked appliance found with id {appliance_id}."
 
-        reference = storage.get_reference_data(appliance["appliance_type"])
+        reference = _lookup_reference(appliance["appliance_type"])
         display_name = reference.get("display_name", appliance["appliance_type"]) if reference else appliance["appliance_type"]
 
         return (

@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 **/data/local_state.json
+**/data/chroma/
 *.egg-info/
 
 # frontend (Next.js on Vercel)

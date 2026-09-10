@@ -41,11 +41,12 @@ Build is still split into two stages: **Stage A** is local development against `
 
 ### Day 4 — Sep 12
 
-- [ ] Curate a handful of appliance manuals (PDF/text) for the appliances most likely to come up in the demo
-- [ ] Set up Chroma (self-hosted via Docker, or Chroma Cloud) and embed/ingest the manuals
-- [ ] Wire a `retrieve()` RAG fallback in `lookup_maintenance_interval` (and cost estimation, if needed) — query Chroma, generate the answer via `OpenAIModel`
-- [ ] Add cache-back to `Storage` on a successful RAG lookup so the same lookup skips Chroma next time
-- [ ] **Risk checkpoint:** if manual curation/ingestion runs long, fall back to structured-table-only for the demo
+- [x] Curate a handful of appliance manuals for appliance types not in the structured table (`backend/data/manuals/{ev_charger,wine_cooler,pool_pump}.txt` — mock excerpts standing in for real curated PDFs; swap in real manufacturer manuals before the actual demo if time allows)
+- [x] Set up Chroma, self-hosted via `chromadb`'s local `PersistentClient` (`backend/src/impl/chroma_vector_store.py`, `backend/scripts/ingest_manuals.py`)
+- [x] Wire a `retrieve()` RAG fallback, shared by `lookup_maintenance_interval`, `check_due_maintenance`, and `draft_service_reminder` via an internal `_lookup_reference` helper (`backend/src/tools/appliance_tools.py`) — retrieves from Chroma, extracts structured fields via a Strands `structured_output_model` call (`backend/src/rag.py`)
+- [x] Add cache-back to `Storage` on a successful RAG lookup — same `cache_reference_data` used by the structured table, so a RAG hit is indistinguishable from a seeded entry on the next lookup (including for `estimate_cost`'s Cost Estimator tools, which read the same cache)
+- [x] **Risk checkpoint resolved:** local Chroma ingestion is fast (no AWS-style sync wait), so this didn't become a time sink; the mock-manual curation shortcut above is the fallback if real manuals aren't sourced in time
+- [x] Tests: `backend/tests/test_rag_fallback.py` covers the fallback wiring deterministically via a `FakeVectorStore` + stub extractor (no live Chroma/OpenAI calls); `backend/scripts/demo_day4.py` exercises the real pipeline end-to-end
 
 ### Day 5 — Sep 13
 
