@@ -10,6 +10,7 @@ Usage:
     python scripts/ingest_manuals.py
 """
 
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -23,6 +24,7 @@ MANUALS_DIR = Path(__file__).resolve().parents[1] / "data" / "manuals"
 
 def main() -> None:
     vector_store = ChromaVectorStore()
+    backend = "Chroma Cloud" if os.environ.get("CHROMA_API_KEY") else "local Chroma (data/chroma/)"
 
     manual_paths = sorted(MANUALS_DIR.glob("*.txt"))
     if not manual_paths:
@@ -35,7 +37,7 @@ def main() -> None:
         vector_store.ingest(doc_id=appliance_type, text=text, metadata={"appliance_type": appliance_type})
         print(f"Ingested {appliance_type} ({len(text)} chars)")
 
-    print(f"\nDone. {len(manual_paths)} manuals ingested into Chroma at data/chroma/.")
+    print(f"\nDone. {len(manual_paths)} manuals ingested into {backend}.")
 
 
 if __name__ == "__main__":
