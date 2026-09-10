@@ -22,10 +22,10 @@ Build is still split into two stages: **Stage A** is local development against `
 
 ### Day 2 — Sep 10
 
-- [ ] Build `add_appliance`, `check_due_maintenance`, `log_completed_service` tools against `LocalJsonStorage`
-- [ ] Wire orchestrator agent against structured table only (no RAG yet); model calls via `OpenAIModel`
-- [ ] Test end-to-end locally with mock appliance data
-- [ ] Verify "silent when nothing due, speaks up when due" behavior
+- [x] Build `add_appliance`, `check_due_maintenance`, `log_completed_service`, `lookup_maintenance_interval`, `draft_service_reminder` tools against `LocalJsonStorage` (`backend/src/maintain_ai/tools/appliance_tools.py`)
+- [x] Wire orchestrator agent against structured table only, no RAG yet (`backend/src/maintain_ai/agents/orchestrator.py`), model calls via `OpenAIModel`
+- [x] Test end-to-end locally with mock appliance data — deterministic tool-level tests in `backend/tests/test_appliance_tools.py` (due-date math, no LLM required)
+- [x] Verify "silent when nothing due, speaks up when due" behavior — covered by the same tests; `backend/scripts/demo_day2.py` runs the real orchestrator end-to-end against OpenAI for a live check (needs `OPENAI_API_KEY` in `backend/.env`, not run automatically)
 
 ### Day 3 — Sep 11
 
