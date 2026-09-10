@@ -9,3 +9,7 @@ __pycache__/
 node_modules/
 .next/
 .vercel/
+
+# IDE
+.idea/
+.vscode/

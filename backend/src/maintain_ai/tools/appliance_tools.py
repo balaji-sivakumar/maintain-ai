@@ -1,28 +1,18 @@
-"""Orchestrator tools (Day 2 scope): add_appliance, check_due_maintenance,
-log_completed_service, lookup_maintenance_interval, draft_service_reminder.
+"""Orchestrator tools: add_appliance, check_due_maintenance, log_completed_service,
+lookup_maintenance_interval, draft_service_reminder (Day 2), and estimate_cost,
+which delegates to the Cost Estimator sub-agent (Day 3, Agent-as-Tool pattern).
 
 Built as a factory (`create_orchestrator_tools`) so tools close over a
 concrete Storage implementation without the Strands Agent needing to know
 which one — matches the pluggable-interface design in ARCHITECTURE.md.
 """
 
-from datetime import date, datetime
+from datetime import date
 
 from strands import tool
 
+from maintain_ai.dates import add_months, parse_date
 from maintain_ai.interfaces.storage import Storage
-
-
-def _add_months(reference_date: date, months: int) -> date:
-    total_month_index = reference_date.month - 1 + months
-    year = reference_date.year + total_month_index // 12
-    month = total_month_index % 12 + 1
-    day = min(reference_date.day, 28)  # sidesteps invalid dates (e.g. Feb 30)
-    return date(year, month, day)
-
-
-def _parse_date(value: str) -> date:
-    return datetime.strptime(value, "%Y-%m-%d").date()
 
 
 def create_orchestrator_tools(storage: Storage, today: date | None = None) -> list:
@@ -70,8 +60,8 @@ def create_orchestrator_tools(storage: Storage, today: date | None = None) -> li
                 continue
 
             last_service_str = appliance.get("last_serviced_date") or appliance["install_date"]
-            last_service_date = _parse_date(last_service_str)
-            next_due_date = _add_months(last_service_date, reference["service_interval_months"])
+            last_service_date = parse_date(last_service_str)
+            next_due_date = add_months(last_service_date, reference["service_interval_months"])
 
             if _today() >= next_due_date:
                 due.append(
@@ -116,10 +106,31 @@ def create_orchestrator_tools(storage: Storage, today: date | None = None) -> li
         storage.update_appliance(appliance_id, last_serviced_date=resolved_date)
         return {"appliance_id": appliance_id, "last_serviced_date": resolved_date}
 
+    @tool
+    def estimate_cost(appliance_id: str) -> str:
+        """Get a repair-vs-replace cost recommendation for a tracked appliance.
+
+        Delegates to the Cost Estimator sub-agent — call this for appliances
+        that check_due_maintenance flagged as due or overdue.
+        """
+        from maintain_ai.agents.cost_estimator import build_cost_estimator
+
+        appliance = storage.get_appliance(appliance_id)
+        if not appliance:
+            return f"No tracked appliance found with id {appliance_id}."
+
+        cost_estimator = build_cost_estimator(storage, today=today)
+        result = cost_estimator(
+            f"Recommend repair or replace for appliance_type={appliance['appliance_type']!r}, "
+            f"install_date={appliance['install_date']!r}."
+        )
+        return str(result)
+
     return [
         add_appliance,
         lookup_maintenance_interval,
         check_due_maintenance,
         draft_service_reminder,
         log_completed_service,
+        estimate_cost,
     ]
