@@ -68,7 +68,7 @@ Build is still split into two stages: **Stage A** is local development against `
 ### Day 6 — Sep 14 (deadline 5:00pm PDT)
 
 - [ ] Final end-to-end testing against the deployed Railway stack
-- [ ] Set up live demo link, if time permits
+- [x] Set up live demo link — https://maintain-ai-dashboard.vercel.app
 - [ ] Submit on Devpost: text description, repo link, architecture diagram, demo video, AWS Builder ID
 - [ ] *(Bonus)* Publish build story on builder.aws.com with "Agents for Humans" in the title
 
