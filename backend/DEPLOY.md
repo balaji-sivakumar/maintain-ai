@@ -25,12 +25,12 @@ has all 3 manuals.
 
 ## 3. Railway — done
 
-Project `maintain-ai`, two services, both connected to
-`balaji-sivakumar/maintain-ai` on GitHub with Root Directory `/backend`:
+Project `maintain-ai`, two services, **not** GitHub-connected (see below for
+why) — deployed via CLI upload from the repo root:
 
 | Service | Dockerfile | Purpose |
 |---|---|---|
-| `web` | `Dockerfile` (CMD: `uvicorn api:app --host 0.0.0.0 --port $PORT`) | `/health`, `/appliances`, `/appliances/{id}/service`, `/check` |
+| `web` | `Dockerfile` (CMD: `uvicorn api:app --host 0.0.0.0 --port $PORT`) | `/health`, `/appliances`, `/appliances/{id}/service`, `/check`, `/ws/check`, `/demo/seed`, `/demo/reset` |
 | `cron` | `Dockerfile.cron` (CMD: `python scripts/cron_check.py`) | Runs once daily at 13:00 UTC, exits |
 
 Env vars (`MODEL_PROVIDER`, `OPENAI_API_KEY`, `DATABASE_URL`, `CHROMA_API_KEY`,
@@ -51,33 +51,42 @@ service, `Dockerfile.cron` for the cron service — the only difference is the
 `CMD`), with each service's `dockerfilePath`, `cronSchedule`, and
 `restartPolicyType` **persisted directly via Railway's GraphQL API**
 (`serviceInstanceUpdate`), rather than read from a config file per deploy.
-This matters because it means:
+`backend/railway.toml` / `backend/railway.cron.toml` are now just
+**reference documentation** of intent, not what's actually driving either
+service.
 
-- `backend/railway.toml` / `backend/railway.cron.toml` are now just
-  **reference documentation** of intent — they're not what's actually
-  driving either service's settings. They still work as config-as-code for
-  a plain `railway up` (with a deprecation warning), but the services'
-  *persisted* settings are what take effect either way.
-- **Future redeploys just work** — either `git push` to `main` (both
-  services are GitHub-connected) or `railway up backend --path-as-root --service <web|cron>`
-  from the repo root will rebuild using the correct Dockerfile per service,
-  without needing to repeat any of the swap-file or API steps above.
-- If you ever need to change the cron schedule, restart policy, or health
-  check path, do it the same way: `railway api` with a `serviceInstanceUpdate`
-  mutation (or ask me to) — editing `railway.cron.toml` alone won't do
-  anything for these two services anymore.
+I also tried connecting both services to the GitHub repo (`source.repo` +
+`rootDirectory: "/backend"`, both settable via the same API) to get
+auto-deploy on push. That didn't work — no webhook ever fired on a real
+push, and worse, it **broke CLI deploys**: with `rootDirectory` persisted to
+`/backend` and `railway up backend --path-as-root` *also* scoping the upload
+to `backend/`, Railway ended up looking for `backend/backend/Dockerfile`
+inside the archive and failed silently at the "scheduling build" stage with
+no useful log output. Fixed by disconnecting the source
+(`railway service source disconnect`) and clearing `rootDirectory` back to
+`""` (not `null` — that's a no-op for this field) on both services. **Don't
+reconnect a GitHub source to either service** unless you're prepared to
+also stop using `--path-as-root` for CLI deploys, or re-verify this doesn't
+regress.
 
 ### Redeploying after a code change
 
 ```bash
-cd backend
-railway up --service web    # or: git push, once GitHub auto-deploy is confirmed working
-railway up --service cron
+cd /path/to/maintain-ai   # repo root — railway up resolves the linked
+                          # project from wherever `railway init` was run,
+                          # not necessarily your shell's cwd
+railway up backend --path-as-root --service web
+railway up backend --path-as-root --service cron
 ```
 
-(Run from the repo root with `railway up backend --path-as-root --service <name>`
-if not already linked/cd'd appropriately — see `railway status` to check the
-current link.)
+## For the frontend
+
+Base URL: `https://web-production-91b0a.up.railway.app`
+WebSocket: `wss://web-production-91b0a.up.railway.app/ws/check`
+
+CORS is wide open (`allow_origins=["*"]`) since there's no auth on this API
+at all — anyone with the URL can add/delete appliances or trigger a check.
+Fine for a hackathon demo; not something to reuse as-is beyond that.
 
 ## Not yet wired
 
