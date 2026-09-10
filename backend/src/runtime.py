@@ -1,16 +1,18 @@
 """Runtime wiring shared by the FastAPI service and the cron script.
 
-Picks concrete Storage/VectorStore implementations based on what's
+Picks concrete Storage/VectorStore/Notifier implementations based on what's
 configured in the environment — DATABASE_URL present means Neon, otherwise
 falls back to LocalJsonStorage; OPENAI_API_KEY present means Chroma RAG is
-available, otherwise the orchestrator runs structured-table-only. This is
-the one place that decides "deployed" vs "local" so api.py and the cron
-script never diverge on it.
+available, otherwise the orchestrator runs structured-table-only;
+RESEND_API_KEY+NOTIFY_EMAIL present means real emails, otherwise
+notifications just print to stdout. This is the one place that decides
+"deployed" vs "local" so api.py and the cron script never diverge on it.
 """
 
 import os
 from typing import Optional
 
+from interfaces.notifier import Notifier
 from interfaces.storage import Storage
 from interfaces.vector_store import VectorStore
 
@@ -33,3 +35,14 @@ def build_vector_store() -> Optional[VectorStore]:
     from impl.chroma_vector_store import ChromaVectorStore
 
     return ChromaVectorStore()
+
+
+def build_notifier() -> Notifier:
+    if os.environ.get("RESEND_API_KEY") and os.environ.get("NOTIFY_EMAIL"):
+        from impl.resend_notifier import ResendNotifier
+
+        return ResendNotifier()
+
+    from impl.console_notifier import ConsoleNotifier
+
+    return ConsoleNotifier()

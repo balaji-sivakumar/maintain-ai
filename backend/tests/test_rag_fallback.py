@@ -26,6 +26,7 @@ def _make_rag_tools(storage, vector_store, extract_reference_data, today=None):
         draft_service_reminder,
         log_completed_service,
         estimate_cost,
+        send_notification,
     ) = create_orchestrator_tools(
         storage,
         vector_store=vector_store,

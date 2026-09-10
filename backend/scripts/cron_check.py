@@ -13,13 +13,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents.orchestrator import build_orchestrator
-from runtime import build_storage, build_vector_store
+from runtime import build_notifier, build_storage, build_vector_store
 
 
 def main() -> None:
     storage = build_storage()
     vector_store = build_vector_store()
-    agent = build_orchestrator(storage, vector_store=vector_store)
+    notifier = build_notifier()
+    agent = build_orchestrator(storage, vector_store=vector_store, notifier=notifier)
 
     # agent()'s default callback_handler already streams the response to
     # stdout (visible in Railway's cron logs) — don't print the returned

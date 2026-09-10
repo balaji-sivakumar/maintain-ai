@@ -1,11 +1,11 @@
 """Orchestrator tools: add_appliance, check_due_maintenance, log_completed_service,
 lookup_maintenance_interval, draft_service_reminder (Day 2), estimate_cost, which
-delegates to the Cost Estimator sub-agent (Day 3, Agent-as-Tool pattern), and the
-Day 4 RAG fallback in lookup_maintenance_interval.
+delegates to the Cost Estimator sub-agent (Day 3, Agent-as-Tool pattern), the
+Day 4 RAG fallback in lookup_maintenance_interval, and send_notification (Day 5).
 
 Built as a factory (`create_orchestrator_tools`) so tools close over concrete
-Storage/VectorStore implementations without the Strands Agent needing to know
-which ones — matches the pluggable-interface design in ARCHITECTURE.md.
+Storage/VectorStore/Notifier implementations without the Strands Agent needing
+to know which ones — matches the pluggable-interface design in ARCHITECTURE.md.
 """
 
 from datetime import date
@@ -14,6 +14,7 @@ from typing import Callable, Optional
 from strands import tool
 
 from dates import add_months, parse_date
+from interfaces.notifier import Notifier
 from interfaces.storage import Storage
 from interfaces.vector_store import VectorStore
 
@@ -22,6 +23,7 @@ def create_orchestrator_tools(
     storage: Storage,
     vector_store: Optional[VectorStore] = None,
     extract_reference_data: Optional[Callable[[str, list[str]], Optional[dict]]] = None,
+    notifier: Optional[Notifier] = None,
     today: date | None = None,
 ) -> list:
     def _today() -> date:
@@ -166,6 +168,21 @@ def create_orchestrator_tools(
         )
         return str(result)
 
+    @tool
+    def send_notification(subject: str, message: str) -> str:
+        """Send the household an email notification (only when something is
+        actually due — never for routine/no-op checks).
+
+        Args:
+            subject: Short email subject line.
+            message: Full notification body — the reminders and cost
+                recommendations gathered for the due appliance(s).
+        """
+        if notifier is None:
+            return "No notifier configured; notification skipped."
+        notifier.send(subject, message)
+        return "Notification sent."
+
     return [
         add_appliance,
         lookup_maintenance_interval,
@@ -173,4 +190,5 @@ def create_orchestrator_tools(
         draft_service_reminder,
         log_completed_service,
         estimate_cost,
+        send_notification,
     ]

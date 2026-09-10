@@ -47,7 +47,7 @@ These four seams are where the stack choice lives. Agent and tool code is writte
 | **Model** | Agent reasoning + tool-use | `BedrockModel` (Claude) | `OpenAIModel` |
 | **Storage** | Appliance state, structured interval/cost table, RAG cache | DynamoDB | Neon Postgres (serverless; `LocalJsonStorage`/SQLite for local dev) |
 | **VectorStore** | Embeddings over appliance manuals for RAG fallback | Bedrock Knowledge Base + OpenSearch Serverless | Chroma Cloud (local `PersistentClient` fallback when no Chroma Cloud credentials are set, e.g. local dev) |
-| **Notifier** | Delivers reminders/recommendations | SES / SNS | SMTP / Resend, or console log for local dev |
+| **Notifier** | Delivers reminders/recommendations | SES / SNS | Resend (sandbox sender), or console log for local dev |
 | **Trigger** | Fires the daily maintenance check | EventBridge | Railway cron |
 | **API surface** | Manual add/update from the user | API Gateway + Lambda | Railway-hosted FastAPI service |
 | **EventStream** | Streams tool-execution events out to the live trace frontend | API Gateway WebSocket API | FastAPI WebSocket endpoint (same Railway service) |
@@ -113,7 +113,7 @@ User (web/CLI)      Judge / demo viewer
 |      Strands agents on OpenAI       |----WebSocket (FastAPI)--
 |                  |                  |
 |                  v                  |
-|             SMTP/Resend             |
+|               Resend                |
 |            (notifications)          |
 +------------------|-------------------+
                     v

@@ -47,7 +47,7 @@ The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-ind
 | Model | OpenAI | Reasoning/tool-use for both agents, via `MODEL_PROVIDER` |
 | State store | Local JSON (Stage A) → Neon Postgres (deployed) | Appliance list, install dates, last-serviced dates, cached lookups |
 | RAG fallback | Chroma | Vector search over appliance manuals when the structured table has no match |
-| Notifications | Console log (Stage A) → SMTP/Resend (deployed) | Sends reminder + cost-recommendation alerts to the user |
+| Notifications | Console log (Stage A) → Resend (deployed) | Sends reminder + cost-recommendation alerts to the user |
 | Compute/hosting | Railway | Hosts the FastAPI service (agent runtime + manual add/update API) and the daily cron trigger |
 | Observability | Strands built-in tracing | Shows agent decision path in the demo video |
 | Live judging UI | Next.js on Vercel + WebSocket (FastAPI) | Streams tool-execution events live for judges — [deployed](https://maintain-ai-dashboard.vercel.app) |

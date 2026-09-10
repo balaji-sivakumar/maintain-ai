@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from agents.orchestrator import build_orchestrator
 from live_trace import stream_events
-from runtime import build_storage, build_vector_store
+from runtime import build_notifier, build_storage, build_vector_store
 
 _state: dict = {}
 
@@ -27,6 +27,7 @@ CHECK_PROMPT = "Check if any of my appliances need maintenance."
 async def lifespan(app: FastAPI):
     _state["storage"] = build_storage()
     _state["vector_store"] = build_vector_store()
+    _state["notifier"] = build_notifier()
     yield
     _state.clear()
 
@@ -36,8 +37,10 @@ def _build_agent():
     # conversation history and raise ConcurrencyException if the same
     # instance is invoked concurrently — both wrong for a multi-request API.
     # Storage/vector_store (the expensive, stateful pieces — DB connections)
-    # are still built once in lifespan and shared.
-    return build_orchestrator(_state["storage"], vector_store=_state["vector_store"])
+    # are still built once in lifespan and shared. Notifier is stateless.
+    return build_orchestrator(
+        _state["storage"], vector_store=_state["vector_store"], notifier=_state["notifier"]
+    )
 
 
 app = FastAPI(title="Maintain-AI", lifespan=lifespan)

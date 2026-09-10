@@ -34,7 +34,8 @@ why) — deployed via CLI upload from the repo root:
 | `cron` | `Dockerfile.cron` (CMD: `python scripts/cron_check.py`) | Runs once daily at 13:00 UTC, exits |
 
 Env vars (`MODEL_PROVIDER`, `OPENAI_API_KEY`, `DATABASE_URL`, `CHROMA_API_KEY`,
-`CHROMA_TENANT`, `CHROMA_DATABASE`) are set on both services.
+`CHROMA_TENANT`, `CHROMA_DATABASE`, `RESEND_API_KEY`, `NOTIFY_EMAIL`) are set
+on both services.
 
 ### How this was actually done (important for future redeploys)
 
@@ -88,12 +89,23 @@ CORS is wide open (`allow_origins=["*"]`) since there's no auth on this API
 at all — anyone with the URL can add/delete appliances or trigger a check.
 Fine for a hackathon demo; not something to reuse as-is beyond that.
 
+## Notifications — done
+
+`Notifier` interface (`interfaces/notifier.py`) with `ConsoleNotifier` (local
+dev, no credential) and `ResendNotifier` (`impl/resend_notifier.py`,
+`RESEND_API_KEY`/`NOTIFY_EMAIL`, both in `backend/.env` and set on both
+Railway services). Uses Resend's sandbox sender (`onboarding@resend.dev`),
+which can only deliver to the Resend account's own signup email — fine for
+a single-household demo, would need a verified custom domain for real
+multi-recipient use.
+
+The orchestrator gets a `send_notification` tool and calls it once, only
+when `check_due_maintenance` actually found something due — verified live
+via the `/ws/check` trace (`send_notification` fires and returns `success`
+when something's due; never called on a silent check).
+
 ## Not yet wired
 
-- **Notifications (SMTP/Resend):** `/check` and the cron job currently just
-  produce the agent's text response — there's no email/SMS delivery yet.
-  Say the word if you want this wired; it needs its own credential (Resend
-  API key, or SMTP host/user/pass).
 - Real manufacturer manuals — `data/manuals/*.txt` are mock excerpts I wrote,
   not curated PDFs. Fine for proving the pipeline; swap them before the
   actual demo if you have real ones.
