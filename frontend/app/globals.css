@@ -442,6 +442,20 @@ button.danger {
   padding: 0.2rem 0.1rem;
 }
 
+.advisory-note {
+  font-size: 0.72rem;
+  color: var(--warning);
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed rgba(184, 134, 11, 0.35);
+}
+
+.live-trace-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: -0.4rem;
+}
+
 .spinner {
   width: 10px;
   height: 10px;

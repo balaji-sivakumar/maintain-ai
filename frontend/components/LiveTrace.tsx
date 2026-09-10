@@ -17,8 +17,11 @@ const STATUS_LABEL: Record<TraceStatus, string> = {
   error: "Error",
 };
 
+const ADVISORY_TOOLS = new Set(["estimate_cost", "recommend_repair_or_replace"]);
+
 function ToolCard({ entry }: { entry: Extract<TraceEntry, { kind: "tool" }> }) {
   const isPending = entry.status === undefined;
+  const isAdvisory = ADVISORY_TOOLS.has(entry.name);
   return (
     <div className={`trace-tool ${isPending ? "pending" : entry.status}`}>
       <div className="trace-tool-header">
@@ -30,7 +33,15 @@ function ToolCard({ entry }: { entry: Extract<TraceEntry, { kind: "tool" }> }) {
         <pre className="trace-tool-io">{JSON.stringify(entry.input)}</pre>
       )}
       {entry.output !== undefined && (
-        <pre className="trace-tool-io trace-tool-output">{truncate(entry.output, 600)}</pre>
+        <>
+          <pre className="trace-tool-io trace-tool-output">{truncate(entry.output, 600)}</pre>
+          {isAdvisory && (
+            <p className="advisory-note">
+              Advisory only — a suggestion for you to act on, not an order or repair ticket. Nothing is
+              booked or purchased automatically.
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -56,6 +67,10 @@ export default function LiveTrace({ status, entries, error, onRun }: Props) {
           </button>
         </div>
       </div>
+      <p className="live-trace-subtitle">
+        Repair/replace recommendations are advisory only — nothing is booked, ordered, or purchased
+        automatically.
+      </p>
 
       {error && <p className="trace-error">{error}</p>}
 

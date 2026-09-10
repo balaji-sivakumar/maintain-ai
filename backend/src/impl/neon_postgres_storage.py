@@ -45,12 +45,28 @@ class NeonPostgresStorage(Storage):
         if not url:
             raise RuntimeError("DATABASE_URL is required for NeonPostgresStorage")
 
-        self._conn = psycopg.connect(url, autocommit=True)
-        self._conn.execute(_SCHEMA)
+        self._url = url
+        self._conn = self._connect()
+        self._execute(_SCHEMA)
         self._seed_reference_data_if_empty(reference_seed_path)
 
+    def _connect(self) -> psycopg.Connection:
+        return psycopg.connect(self._url, autocommit=True)
+
+    def _execute(self, query: str, params: tuple = ()):
+        """Runs a query, reconnecting once if the held connection has gone
+        stale — e.g. Neon's serverless compute auto-suspends after idle time
+        and drops existing sessions, but this Storage instance is built once
+        at process startup and reused across every request, so a long-idle
+        deployment will otherwise 500 on the next call forever."""
+        try:
+            return self._conn.execute(query, params)
+        except psycopg.OperationalError:
+            self._conn = self._connect()
+            return self._conn.execute(query, params)
+
     def _seed_reference_data_if_empty(self, reference_seed_path: Path) -> None:
-        (count,) = self._conn.execute("SELECT count(*) FROM reference_data").fetchone()
+        (count,) = self._execute("SELECT count(*) FROM reference_data").fetchone()
         if count > 0:
             return
 
@@ -59,13 +75,13 @@ class NeonPostgresStorage(Storage):
             self.cache_reference_data(appliance_type, data)
 
     def get_reference_data(self, appliance_type: str) -> Optional[dict[str, Any]]:
-        row = self._conn.execute(
+        row = self._execute(
             "SELECT data FROM reference_data WHERE appliance_type = %s", (appliance_type,)
         ).fetchone()
         return row[0] if row else None
 
     def cache_reference_data(self, appliance_type: str, data: dict[str, Any]) -> None:
-        self._conn.execute(
+        self._execute(
             "INSERT INTO reference_data (appliance_type, data) VALUES (%s, %s) "
             "ON CONFLICT (appliance_type) DO UPDATE SET data = excluded.data",
             (appliance_type, Jsonb(data)),
@@ -74,17 +90,17 @@ class NeonPostgresStorage(Storage):
     def add_appliance(self, appliance: dict[str, Any]) -> str:
         appliance_id = str(uuid.uuid4())
         record = {**appliance, "id": appliance_id}
-        self._conn.execute(
+        self._execute(
             "INSERT INTO appliances (id, data) VALUES (%s, %s)", (appliance_id, Jsonb(record))
         )
         return appliance_id
 
     def list_appliances(self) -> list[dict[str, Any]]:
-        rows = self._conn.execute("SELECT data FROM appliances").fetchall()
+        rows = self._execute("SELECT data FROM appliances").fetchall()
         return [row[0] for row in rows]
 
     def get_appliance(self, appliance_id: str) -> Optional[dict[str, Any]]:
-        row = self._conn.execute(
+        row = self._execute(
             "SELECT data FROM appliances WHERE id = %s", (appliance_id,)
         ).fetchone()
         return row[0] if row else None
@@ -95,11 +111,11 @@ class NeonPostgresStorage(Storage):
             raise KeyError(f"No tracked appliance with id {appliance_id!r}")
 
         updated = {**existing, **fields}
-        self._conn.execute(
+        self._execute(
             "UPDATE appliances SET data = %s WHERE id = %s", (Jsonb(updated), appliance_id)
         )
 
     def delete_appliance(self, appliance_id: str) -> None:
-        result = self._conn.execute("DELETE FROM appliances WHERE id = %s", (appliance_id,))
+        result = self._execute("DELETE FROM appliances WHERE id = %s", (appliance_id,))
         if result.rowcount == 0:
             raise KeyError(f"No tracked appliance with id {appliance_id!r}")
