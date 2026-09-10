@@ -57,9 +57,17 @@ async def test_stream_events_transforms_tool_call_and_result():
     tool_calls = [e for e in events if e["type"] == "tool_call"]
     tool_results = [e for e in events if e["type"] == "tool_result"]
 
-    assert tool_calls == [{"type": "tool_call", "name": "check_due_maintenance", "input": {}}]
+    assert tool_calls == [
+        {"type": "tool_call", "tool_use_id": "call_1", "name": "check_due_maintenance", "input": {}}
+    ]
     assert tool_results == [
-        {"type": "tool_result", "name": "check_due_maintenance", "status": "success", "output": "[]"}
+        {
+            "type": "tool_result",
+            "tool_use_id": "call_1",
+            "name": "check_due_maintenance",
+            "status": "success",
+            "output": "[]",
+        }
     ]
 
 
@@ -96,5 +104,11 @@ async def test_tool_result_falls_back_to_unknown_name_if_call_never_seen():
 
     events = [e async for e in stream_events(OrphanResultAgent(), "x")]
     assert events == [
-        {"type": "tool_result", "name": "unknown", "status": "success", "output": "ok"}
+        {
+            "type": "tool_result",
+            "tool_use_id": "call_missing",
+            "name": "unknown",
+            "status": "success",
+            "output": "ok",
+        }
     ]

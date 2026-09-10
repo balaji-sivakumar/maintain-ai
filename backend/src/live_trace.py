@@ -20,7 +20,13 @@ def _extract_tool_result_text(tool_result: dict[str, Any]) -> str:
 
 
 async def stream_events(agent: Agent, prompt: str) -> AsyncIterator[dict[str, Any]]:
-    """Run one agent turn, yielding simplified trace events as it executes."""
+    """Run one agent turn, yielding simplified trace events as it executes.
+
+    tool_call/tool_result carry the same tool_use_id, so a consumer can
+    correlate them exactly rather than guessing by name+order — the same
+    tool (e.g. draft_service_reminder) is typically called once per
+    appliance in a batch, so name alone isn't a reliable key.
+    """
     tool_names: dict[str, str] = {}
 
     async for event in agent.stream_async(prompt):
@@ -33,6 +39,7 @@ async def stream_events(agent: Agent, prompt: str) -> AsyncIterator[dict[str, An
                     tool_names[tool_use["toolUseId"]] = tool_use["name"]
                     yield {
                         "type": "tool_call",
+                        "tool_use_id": tool_use["toolUseId"],
                         "name": tool_use["name"],
                         "input": tool_use.get("input", {}),
                     }
@@ -40,6 +47,7 @@ async def stream_events(agent: Agent, prompt: str) -> AsyncIterator[dict[str, An
                     tool_result = block["toolResult"]
                     yield {
                         "type": "tool_result",
+                        "tool_use_id": tool_result["toolUseId"],
                         "name": tool_names.get(tool_result["toolUseId"], "unknown"),
                         "status": tool_result.get("status"),
                         "output": _extract_tool_result_text(tool_result),
