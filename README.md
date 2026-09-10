@@ -33,7 +33,7 @@ Maintain-AI runs quietly in the background. It tracks a household's appliances, 
 
 ## Architecture
 
-The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-independent. The deployment stack is an open choice between an AWS-native path and a Railway+Chroma alternative, decided by a Day 4 credit-availability checkpoint. See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full agent design, data flow, pluggable interfaces, both deployment diagrams, and the decision criteria.
+The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-independent. **Stack decision: Railway + Neon + Chroma is committed** (AWS credits aren't available for this build; an AWS-native path is kept in ARCHITECTURE.md as a documented reference only). See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the full agent design, data flow, pluggable interfaces, and both deployment diagrams.
 
 ---
 
@@ -41,15 +41,16 @@ The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-ind
 
 | Layer | Component | Purpose |
 |---|---|---|
-| Agent framework | Strands Agents SDK (Python) | Orchestrator + Cost Estimator agents, Agent-as-Tool pattern (hard requirement, fixed regardless of stack) |
-| Model | OpenAI (Stage A) / Amazon Bedrock (Claude, Option A) | Reasoning/tool-use for both agents — swappable via `MODEL_PROVIDER` |
-| State store | Local JSON (Stage A) / Railway Postgres (Option B) / DynamoDB (Option A) | Appliance list, install dates, last-serviced dates, cached lookups |
-| RAG fallback | Chroma (Option B) / Bedrock Knowledge Base + OpenSearch Serverless (Option A) | Vector search over appliance manuals when the structured table has no match |
-| Notifications | Console log (Stage A) / SMTP-Resend (Option B) / SES-SNS (Option A) | Sends reminder + cost-recommendation alerts to the user |
+| Agent framework | Strands Agents SDK (Python) | Orchestrator + Cost Estimator agents, Agent-as-Tool pattern (hackathon's hard requirement) |
+| Model | OpenAI | Reasoning/tool-use for both agents, via `MODEL_PROVIDER` |
+| State store | Local JSON (Stage A) → Neon Postgres (deployed) | Appliance list, install dates, last-serviced dates, cached lookups |
+| RAG fallback | Chroma | Vector search over appliance manuals when the structured table has no match |
+| Notifications | Console log (Stage A) → SMTP/Resend (deployed) | Sends reminder + cost-recommendation alerts to the user |
+| Compute/hosting | Railway | Hosts the FastAPI service (agent runtime + manual add/update API) and the daily cron trigger |
 | Observability | Strands built-in tracing | Shows agent decision path in the demo video |
-| Live judging UI | Next.js on Vercel + WebSocket (FastAPI or API Gateway WebSocket API) | Streams tool-execution events live for judges, stack-independent |
+| Live judging UI | Next.js on Vercel + WebSocket (FastAPI) | Streams tool-execution events live for judges (stretch, demo polish) |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and both deployment options.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and the AWS-native reference option.
 
 ---
 

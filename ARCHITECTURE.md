@@ -1,6 +1,8 @@
 # Maintain-AI — Architecture
 
-This document is the source of truth for the agent design and data flow. Those are **firm** — they don't change based on infrastructure choice. The underlying stack (AWS-native vs. Railway/Chroma) is an **open decision** below, resolved by a Day 4 checkpoint based on AWS credit/account availability.
+This document is the source of truth for the agent design and data flow. Those are **firm** — they don't change based on infrastructure choice.
+
+**Stack decision: Option B (Railway + Neon + Chroma) is committed.** AWS credits aren't available for this build, so Option A (AWS-native) below is kept only as a documented reference — it's not being pursued. This was resolved ahead of the original Day 4 checkpoint since the credit question is settled.
 
 ---
 
@@ -40,10 +42,10 @@ The agent only speaks up in step 5 when step 2 or 4 actually found something due
 
 These four seams are where the stack choice lives. Agent and tool code is written against the interface, never the concrete implementation, so swapping a backing service is a config change.
 
-| Interface | Responsibility | AWS-native impl | Railway/Chroma impl |
+| Interface | Responsibility | AWS-native impl | Railway/Neon/Chroma impl |
 |---|---|---|---|
 | **Model** | Agent reasoning + tool-use | `BedrockModel` (Claude) | `OpenAIModel` |
-| **Storage** | Appliance state, structured interval/cost table, RAG cache | DynamoDB | Railway Postgres (or SQLite for local dev) |
+| **Storage** | Appliance state, structured interval/cost table, RAG cache | DynamoDB | Neon Postgres (serverless; `LocalJsonStorage`/SQLite for local dev) |
 | **VectorStore** | Embeddings over appliance manuals for RAG fallback | Bedrock Knowledge Base + OpenSearch Serverless | Chroma (self-hosted or Chroma Cloud) |
 | **Notifier** | Delivers reminders/recommendations | SES / SNS | SMTP / Resend, or console log for local dev |
 | **Trigger** | Fires the daily maintenance check | EventBridge | Railway cron |
@@ -56,7 +58,7 @@ These four seams are where the stack choice lives. Agent and tool code is writte
 
 Strands emits tool-use events natively via async-iterator streaming or callback handlers as the orchestrator runs — no custom tracing needed, just a subscriber. The **EventStream** interface (above) forwards those events to a small **Next.js frontend deployed on Vercel**, which renders the agent's decision path live: `check_due_maintenance → found HVAC due → estimate_cost → Cost Estimator invoked → recommend_repair_or_replace: repair`.
 
-The frontend is stack-independent — the same Vercel app points at whichever WebSocket URL is live (Option A's API Gateway WebSocket API or Option B's Railway FastAPI endpoint), so the Day 4 stack decision doesn't affect it.
+The frontend is stack-independent by design, though with Option B committed it only needs to point at the Railway FastAPI WebSocket endpoint.
 
 This is presentation polish, not a functional requirement — it strengthens the Design/Presentation judging criteria (visualizing "silent until it matters" instead of only narrating it) but is explicitly sequenced *after* the core agent loop (Day 2–3) works, so it never blocks the functional build.
 
@@ -64,7 +66,7 @@ This is presentation polish, not a functional requirement — it strengthens the
 
 ## Deployment options
 
-### Option A — AWS-native
+### Option A — AWS-native (reference only, not pursued)
 
 ```
 User (web/CLI)      Judge / demo viewer
@@ -91,9 +93,9 @@ User (web/CLI)      Judge / demo viewer
                   User (email/SMS alert)
 ```
 
-Strengthens Technical Implementation score per the hackathon rubric ("Deploying with Amazon Bedrock AgentCore... will strengthen your Technical Implementation score, but it's not required"). Cost/setup risk: AWS Builder ID, credit approval, and Bedrock Knowledge Base sync time — see risk note below.
+Would have strengthened the Technical Implementation score per the hackathon rubric ("Deploying with Amazon Bedrock AgentCore... will strengthen your Technical Implementation score, but it's not required"). Not pursued: AWS credits aren't available for this build.
 
-### Option B — Railway + Chroma
+### Option B — Railway + Neon + Chroma (committed)
 
 ```
 User (web/CLI)      Judge / demo viewer
@@ -107,23 +109,26 @@ User (web/CLI)      Judge / demo viewer
 |         v                v          |   +--------^---------+
 |      Agent runtime (long-running)   |            |
 |      Strands agents on OpenAI       |----WebSocket (FastAPI)--
-|        /            |          \    |
-|       v              v           v  |
-|  Postgres      SMTP/Resend    Chroma
-|  (appliance    (notifications (vector store over
-|   state)        out)           appliance manuals)
-+--------------------------------------+
-                         |
-                         v
-                  User (email alert)
+|        /                        \   |
+|       v                          v  |
+|   Chroma                    SMTP/Resend
+|   (vector store over        (notifications out)
+|    appliance manuals)               |
++--------------------|-----------------+
+                      v
+              Neon Postgres (external, serverless)
+              (appliance state, structured table, RAG cache)
+                      |
+                      v
+               User (email alert)
 ```
 
-No AWS account/credit dependency at all. Fully within the hackathon's hard requirement (Strands Agents SDK) since AWS usage is optional, not required, per the rules.
+No AWS account/credit dependency at all. Fully within the hackathon's hard requirement (Strands Agents SDK) since AWS usage is optional, not required, per the rules. **This is the path being built.**
 
 ---
 
-## Decision point
+## Decision point (resolved)
 
-**Checkpoint: Day 4 (Sep 12).** If AWS account/credits/Bedrock Knowledge Base access isn't in place by then, default to **Option B** for the rest of the build and the submission demo, rather than losing time to AWS setup friction. Either option satisfies every hard submission requirement; Option A only adds rubric points on Technical Implementation, and a working Option B demo beats a stalled Option A integration on every other judged axis (Design, Impact, Creativity, Presentation).
+AWS credits aren't available for this build, so **Option B is committed** rather than a fallback. Option A satisfies every hard submission requirement too and only adds rubric points on Technical Implementation — a working Option B demo beats a stalled AWS integration on every other judged axis (Design, Impact, Creativity, Presentation).
 
-Because agent/tool code is written against the interfaces above, this decision does not require rewriting the orchestrator, the Cost Estimator sub-agent, or any tool logic — only the concrete Model/Storage/VectorStore/Notifier/Trigger/EventStream implementations passed in at startup. The Vercel frontend is unaffected either way — it's built once against the EventStream interface and just points at whichever backend WebSocket URL is live.
+Because agent/tool code is written against the interfaces above, this decision did not require rewriting the orchestrator, the Cost Estimator sub-agent, or any tool logic — only the concrete Storage/VectorStore/Notifier/Trigger/EventStream implementations. Note: the **AWS Builder ID account is still needed** — it's a fixed submission-form requirement per the hackathon rules, independent of whether AWS services are actually used.
