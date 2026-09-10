@@ -4,6 +4,8 @@ A quiet background agent that predicts home appliance maintenance and tells you 
 
 Built for the **Agents for Humans Hackathon** (AWS, hosted on Devpost) — Everyday Agents track.
 
+**Live:** [maintain-ai-dashboard.vercel.app](https://maintain-ai-dashboard.vercel.app) — dashboard with demo data, a scenario simulator, and a live view of the orchestrator's tool calls. Backend API: [web-production-91b0a.up.railway.app](https://web-production-91b0a.up.railway.app).
+
 ---
 
 ## Overview
@@ -48,7 +50,7 @@ The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-ind
 | Notifications | Console log (Stage A) → SMTP/Resend (deployed) | Sends reminder + cost-recommendation alerts to the user |
 | Compute/hosting | Railway | Hosts the FastAPI service (agent runtime + manual add/update API) and the daily cron trigger |
 | Observability | Strands built-in tracing | Shows agent decision path in the demo video |
-| Live judging UI | Next.js on Vercel + WebSocket (FastAPI) | Streams tool-execution events live for judges (stretch, demo polish) |
+| Live judging UI | Next.js on Vercel + WebSocket (FastAPI) | Streams tool-execution events live for judges — [deployed](https://maintain-ai-dashboard.vercel.app) |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and the AWS-native reference option.
 
@@ -57,8 +59,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and the 
 ## Repo layout
 
 ```
-backend/    Strands agents, tools, Storage/Model interfaces (Python)
-frontend/   Live tool-trace judging UI — Next.js on Vercel (not yet scaffolded)
+backend/    Strands agents, tools, Storage/Model interfaces (Python) — deployed to Railway
+frontend/   Live tool-trace judging UI — Next.js, deployed to Vercel
 ```
 
 ## Setup
@@ -74,6 +76,15 @@ pytest tests/
 
 The structured appliance reference table lives at `backend/data/appliances.json`; tracked household appliances persist locally to `backend/data/local_state.json` (gitignored) via `LocalJsonStorage`.
 
+```bash
+cd frontend
+npm install
+cp .env.example .env.local   # points at the deployed Railway backend by default
+npm run dev
+```
+
+See `backend/DEPLOY.md` and `frontend/README.md` for the full deployment setup (Railway, Neon, Chroma Cloud, Vercel).
+
 ---
 
 ## Submission requirements checklist
@@ -83,5 +94,5 @@ The structured appliance reference table lives at `backend/data/appliances.json`
 - [ ] Architecture diagram
 - [ ] Demo video (max 5 min): problem, who it's for, why it matters
 - [ ] AWS Builder ID
-- [ ] Optional live demo link
+- [x] Optional live demo link — https://maintain-ai-dashboard.vercel.app
 - [ ] (Bonus) Build story published on builder.aws.com, titled with "Agents for Humans"

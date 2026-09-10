@@ -62,6 +62,8 @@ The frontend is stack-independent by design, though with Option B committed it o
 
 This is presentation polish, not a functional requirement — it strengthens the Design/Presentation judging criteria (visualizing "silent until it matters" instead of only narrating it) but is explicitly sequenced *after* the core agent loop (Day 2–3) works, so it never blocks the functional build.
 
+**Status: built and deployed.** [maintain-ai-dashboard.vercel.app](https://maintain-ai-dashboard.vercel.app) — the `/ws/check` endpoint reduces Strands' raw event stream (which includes token-by-token deltas of tool-call arguments) to `tool_call`/`tool_result`/`text_delta`/`done` events (`backend/src/live_trace.py`), correlated by `tool_use_id` rather than name so repeated calls to the same tool (e.g. `draft_service_reminder` once per due appliance) don't get mismatched.
+
 ---
 
 ## Deployment options
