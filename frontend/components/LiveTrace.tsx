@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<TraceStatus, string> = {
   idle: "Idle",
   connecting: "Connecting…",
   streaming: "Streaming…",
+  awaiting_approval: "Awaiting approval",
   done: "Done",
   error: "Error",
 };
@@ -68,8 +69,9 @@ export default function LiveTrace({ status, entries, error, onRun }: Props) {
         </div>
       </div>
       <p className="live-trace-subtitle">
-        Repair/replace recommendations are advisory only — nothing is booked, ordered, or purchased
-        automatically.
+        Repair/replace recommendations are advisory only — the household decides. Submitting a
+        request to actually proceed is enforced, not just labeled: the agent genuinely pauses and
+        waits for a human decision on each appliance before anything is recorded as requested.
       </p>
 
       {error && <p className="trace-error">{error}</p>}
@@ -81,15 +83,32 @@ export default function LiveTrace({ status, entries, error, onRun }: Props) {
             live.
           </p>
         )}
-        {entries.map((entry, i) =>
-          entry.kind === "tool" ? (
-            <ToolCard key={entry.id} entry={entry} />
-          ) : (
+        {entries.map((entry, i) => {
+          if (entry.kind === "tool") return <ToolCard key={entry.id} entry={entry} />;
+          if (entry.kind === "confirm") {
+            return (
+              <div key={i} className="trace-confirm">
+                <strong>Paused — waiting on human decisions</strong>
+                {entry.requests.map((req) => (
+                  <div key={req.appliance_id} className="trace-confirm-row">
+                    <span className={`action-tag action-${req.action}`}>{req.action}</span>
+                    <span className="mono">{req.appliance_id}</span>
+                    <span className="trace-confirm-notes">{req.notes}</span>
+                  </div>
+                ))}
+                <p className="advisory-note">
+                  Nothing is recorded as requested until this is resolved in the Pending approvals
+                  panel below.
+                </p>
+              </div>
+            );
+          }
+          return (
             <div key={i} className="trace-text">
               {entry.text}
             </div>
-          )
-        )}
+          );
+        })}
       </div>
     </div>
   );

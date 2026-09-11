@@ -231,10 +231,80 @@ button.danger {
   width: fit-content;
 }
 
+.appliance-row-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  width: fit-content;
+  border: 1px solid transparent;
+}
+
+.status-pill-OK {
+  color: var(--success);
+  background: rgba(26, 143, 76, 0.12);
+  border-color: rgba(26, 143, 76, 0.3);
+}
+
+.status-pill-SERVICE_DUE {
+  color: var(--warning);
+  background: rgba(184, 134, 11, 0.12);
+  border-color: rgba(184, 134, 11, 0.3);
+}
+
+.status-pill-REPAIR_REQUESTED,
+.status-pill-REPLACE_REQUESTED {
+  color: var(--accent);
+  background: rgba(47, 111, 235, 0.12);
+  border-color: rgba(47, 111, 235, 0.3);
+}
+
+.status-pill-UNKNOWN,
+.status-pill-NOT_CHECKED {
+  color: var(--text-muted);
+  background: rgba(127, 127, 127, 0.1);
+  border-color: var(--border);
+}
+
 .row-actions {
   display: flex;
   gap: 0.4rem;
   flex-shrink: 0;
+}
+
+.appliance-row-editing {
+  align-items: flex-start;
+}
+
+.edit-appliance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.3rem 0;
+}
+
+.edit-appliance-form .field label {
+  font-size: 0.7rem;
+}
+
+.edit-appliance-form .field input {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.4rem;
+}
+
+.edit-appliance-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .row-actions button {
@@ -362,6 +432,10 @@ button.danger {
   color: var(--danger);
   border-color: var(--danger);
 }
+.status-awaiting_approval {
+  color: var(--warning);
+  border-color: var(--warning);
+}
 
 .trace-error {
   color: var(--danger);
@@ -400,6 +474,9 @@ button.danger {
 }
 .trace-tool.pending {
   border-left: 3px solid var(--warning);
+}
+.trace-tool.denied {
+  border-left: 3px solid var(--text-muted);
 }
 
 .trace-tool-header {
@@ -454,6 +531,106 @@ button.danger {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: -0.4rem;
+}
+
+.trace-confirm {
+  background: rgba(184, 134, 11, 0.1);
+  border: 1px solid rgba(184, 134, 11, 0.35);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.trace-confirm-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  flex-wrap: wrap;
+}
+
+.trace-confirm-notes {
+  color: var(--text-muted);
+}
+
+/* Pending approvals */
+
+.pending-confirmations {
+  border-color: var(--warning);
+}
+
+.confirmation-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--bg);
+}
+
+.confirmation-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.confirmation-row:last-of-type {
+  border-bottom: none;
+}
+
+.confirmation-row input[type="checkbox"] {
+  margin-top: 0.2rem;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.confirmation-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.confirmation-row-title {
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
+.confirmation-row-notes {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.action-tag {
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.action-repair {
+  background: rgba(47, 111, 235, 0.15);
+  color: var(--accent);
+}
+
+.action-replace {
+  background: rgba(184, 134, 11, 0.15);
+  color: var(--warning);
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .spinner {

@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from agents.orchestrator import build_orchestrator
+from confirmations import persist_if_interrupted, resume_confirmation
 from live_trace import stream_events
 from runtime import build_notifier, build_storage, build_vector_store, setup_telemetry
 
@@ -75,6 +76,22 @@ class LogServiceRequest(BaseModel):
     service_date: str | None = None
 
 
+class UpdateApplianceRequest(BaseModel):
+    """Fields to edit on an existing tracked appliance — for playing around
+    with scenarios (age it, back-date/clear its last service) without
+    deleting and re-adding it. Only fields actually present in the request
+    body are touched (model_dump(exclude_unset=True) below): omit a field to
+    leave it alone, send it as null to clear it (e.g. last_serviced_date),
+    or send a value to set it."""
+
+    install_date: str | None = None
+    last_serviced_date: str | None = None
+
+
+class RespondConfirmationRequest(BaseModel):
+    approved_appliance_ids: list[str]
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -82,6 +99,9 @@ def health():
 
 @app.get("/appliances")
 def list_appliances():
+    # status is whatever check_due_maintenance last persisted (see
+    # maintenance_status.py) — absent until the first check runs, not
+    # computed live here, so seeding never shows a status out of thin air.
     return _state["storage"].list_appliances()
 
 
@@ -101,6 +121,21 @@ def log_service(appliance_id: str, body: LogServiceRequest):
     return {"appliance_id": appliance_id, "last_serviced_date": resolved_date}
 
 
+@app.patch("/appliances/{appliance_id}")
+def update_appliance(appliance_id: str, body: UpdateApplianceRequest):
+    """Edit install_date and/or last_serviced_date on an existing appliance
+    — lets the dashboard's scenario simulator age an appliance or back-date
+    (or clear) its last service without deleting and re-adding it."""
+    fields = body.model_dump(exclude_unset=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="no fields to update")
+    try:
+        _state["storage"].update_appliance(appliance_id, **fields)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="appliance not found")
+    return _state["storage"].get_appliance(appliance_id)
+
+
 @app.delete("/appliances/{appliance_id}")
 def delete_appliance(appliance_id: str):
     try:
@@ -116,9 +151,24 @@ def check_maintenance():
 
     Called by the Railway cron service. For a live tool-by-tool trace, use
     the /ws/check WebSocket instead.
+
+    If the check ends up recommending a repair/replacement, submitting that
+    request is gated behind human approval (Day 6) — the run pauses there
+    rather than recording anything, and this returns a pending confirmation
+    (one entry per due appliance) instead of a final response. See
+    /confirmations and POST /confirmations/{id}/respond.
     """
-    result = _build_agent()(CHECK_PROMPT)
+    agent = _build_agent()
+    result = agent(CHECK_PROMPT)
     _flush_telemetry()
+
+    confirmation = persist_if_interrupted(_state["storage"], agent, result)
+    if confirmation:
+        return {
+            "confirmation_required": True,
+            "confirmation_id": confirmation["id"],
+            "requests": confirmation["requests"],
+        }
     return {"response": str(result)}
 
 
@@ -158,12 +208,22 @@ DEMO_APPLIANCES = [
 ]
 
 
+def _clear_confirmations(storage) -> None:
+    """Any pending confirmation left over from before a seed/reset points at
+    appliance ids that no longer exist — without this they'd keep showing up
+    in the Pending Approvals panel as orphaned, unresolvable entries."""
+    for confirmation in storage.list_confirmations():
+        storage.delete_confirmation(confirmation["id"])
+
+
 @app.post("/demo/seed")
 def seed_demo_data():
-    """Clears tracked appliances and adds a fixed set of demo scenarios."""
+    """Clears tracked appliances and pending confirmations, then adds a
+    fixed set of demo scenarios."""
     storage = _state["storage"]
     for appliance in storage.list_appliances():
         storage.delete_appliance(appliance["id"])
+    _clear_confirmations(storage)
 
     seeded = []
     for appliance in DEMO_APPLIANCES:
@@ -174,11 +234,12 @@ def seed_demo_data():
 
 @app.post("/demo/reset")
 def reset_demo_data():
-    """Deletes all tracked appliances."""
+    """Deletes all tracked appliances and any pending confirmations."""
     storage = _state["storage"]
     ids = [a["id"] for a in storage.list_appliances()]
     for appliance_id in ids:
         storage.delete_appliance(appliance_id)
+    _clear_confirmations(storage)
     return {"deleted": len(ids)}
 
 
@@ -191,7 +252,7 @@ async def ws_check(websocket: WebSocket):
     await websocket.accept()
     try:
         agent = _build_agent()
-        async for event in stream_events(agent, CHECK_PROMPT):
+        async for event in stream_events(agent, CHECK_PROMPT, storage=_state["storage"]):
             await websocket.send_text(json.dumps(event))
     except WebSocketDisconnect:
         pass
@@ -203,3 +264,43 @@ async def ws_check(websocket: WebSocket):
             await websocket.close()
         except RuntimeError:
             pass  # already closed (e.g. client disconnected mid-stream)
+
+
+# --- Human-in-the-loop confirmations (Day 6) --------------------------
+
+@app.get("/confirmations")
+def list_confirmations():
+    """Pending submit_maintenance_request approvals for the dashboard to
+    display — each `requests` entry is one due appliance's proposed
+    repair/replace decision awaiting a human's approve/deny."""
+    return [
+        {"id": c["id"], "requests": c["requests"]} for c in _state["storage"].list_confirmations()
+    ]
+
+
+@app.post("/confirmations/{confirmation_id}/respond")
+def respond_to_confirmation(confirmation_id: str, body: RespondConfirmationRequest):
+    """Resolve every pending appliance decision in a confirmation batch in
+    one round trip: appliances in `approved_appliance_ids` are approved,
+    every other pending appliance in the batch is denied. Resumes the run
+    that raised it on a fresh agent instance (see confirmations.py)."""
+    agent = _build_agent()
+    try:
+        result = resume_confirmation(
+            _state["storage"], agent, confirmation_id, body.approved_appliance_ids
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="confirmation not found")
+    _flush_telemetry()
+
+    # Same agent instance resume_confirmation just resumed — a further
+    # gated tool call later in the same run would interrupt it again, and
+    # take_snapshot() must run on the agent that actually holds that state.
+    next_confirmation = persist_if_interrupted(_state["storage"], agent, result)
+    if next_confirmation:
+        return {
+            "confirmation_required": True,
+            "confirmation_id": next_confirmation["id"],
+            "requests": next_confirmation["requests"],
+        }
+    return {"approved_appliance_ids": body.approved_appliance_ids, "response": str(result)}

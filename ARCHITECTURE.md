@@ -31,10 +31,11 @@ Built on the **Strands Agents SDK** — this is the hackathon's one hard require
 2. `check_due_maintenance()` queries **Storage** for appliances due or overdue.
 3. `lookup_maintenance_interval()` checks the structured table in **Storage** first. On a miss, it falls back to **VectorStore** RAG (retrieve manual excerpts → generate an answer via **Model**), then caches the result back into **Storage** so the same lookup skips RAG next time.
 4. If something is due/overdue, the orchestrator calls the Cost Estimator sub-agent (Agent-as-Tool) to get a repair-vs-replace recommendation.
-5. `draft_service_reminder()` composes the message; **Notifier** delivers it to the user.
-6. `log_completed_service()` updates **Storage** once the user marks a service done.
+5. `draft_service_reminder()` composes an informational message; the orchestrator calls `send_notification()` freely — **Notifier** delivers it unconditionally, since it's just telling the household something needs attention.
+6. For every due/overdue appliance, the orchestrator also calls `submit_maintenance_request()` — the actual decision to act on the Cost Estimator's recommendation. This one is gated behind human approval (see "Human-in-the-loop confirmations" below): nothing is recorded as requested until a person approves it.
+7. `log_completed_service()` updates **Storage** once the user marks a service done.
 
-The agent only speaks up in step 5 when step 2 or 4 actually found something due — silence is the default state.
+The agent only speaks up in steps 5–6 when step 2 or 4 actually found something due — silence is the default state.
 
 ---
 
@@ -63,6 +64,30 @@ The frontend is stack-independent by design, though with Option B committed it o
 This is presentation polish, not a functional requirement — it strengthens the Design/Presentation judging criteria (visualizing "silent until it matters" instead of only narrating it) but is explicitly sequenced *after* the core agent loop (Day 2–3) works, so it never blocks the functional build.
 
 **Status: built and deployed.** [maintain-ai-dashboard.vercel.app](https://maintain-ai-dashboard.vercel.app) — the `/ws/check` endpoint reduces Strands' raw event stream (which includes token-by-token deltas of tool-call arguments) to `tool_call`/`tool_result`/`text_delta`/`done` events (`backend/src/live_trace.py`), correlated by `tool_use_id` rather than name so repeated calls to the same tool (e.g. `draft_service_reminder` once per due appliance) don't get mismatched.
+
+---
+
+## Human-in-the-loop confirmations (enforced, not advisory)
+
+"Advisory only" describes the Cost Estimator's repair-vs-replace output — the agent only recommends. The consequential step is *acting* on that recommendation: `submit_maintenance_request()` is what records the household's decision to actually proceed with a repair or replacement. That's the one gated behind human approval, using Strands' built-in `HumanInTheLoop` intervention handler (`strands.vended_interventions.hitl`) — `send_notification` (informational only: "your HVAC is due") runs freely and always fires when something's due, decoupled entirely from the approval gate.
+
+`build_orchestrator()` registers `HumanInTheLoop(allowed_tools=["*", "!submit_maintenance_request"])` on the Agent. The orchestrator calls `submit_maintenance_request` once per due/overdue appliance (not bundled into one call). When it does this several times in the same turn, Strands pauses with *every* one of them as a separate pending interrupt at once — verified directly against the SDK, not assumed from docs — so a single pause can represent several independent per-appliance decisions.
+
+The pause has to survive past the request that raised it: the approval click always arrives as a *separate* HTTP request, potentially after the WebSocket that streamed the original check has closed, or after an unattended cron run has already exited. `backend/src/confirmations.py` bridges this using Strands' `Snapshot` API:
+
+1. `persist_if_interrupted()` — when a run's `AgentResult.stop_reason == "interrupt"`, pairs every pending interrupt with the structured tool-call input that raised it (appliance_id/action/notes, read off the paused assistant message rather than parsed from `HumanInTheLoop`'s human-readable prompt string), and snapshots the paused agent (`agent.take_snapshot(preset="session")`). The whole batch — one confirmation id, a `requests` list with one entry per appliance, and the snapshot — is saved to **Storage**'s `confirmations` table/file.
+2. `resume_confirmation()` — given a confirmation id and the list of appliance ids the household approved, loads the snapshot onto a **freshly-built** orchestrator Agent (`load_snapshot()`) and resumes it with one `interruptResponse` per pending request in a *single* call — approved appliances get `response: true`, every other appliance in the batch gets `response: false`. `HumanInTheLoop` re-evaluates each independently on resume: approved ones actually call `submit_maintenance_request` (recording the decision in Storage), denied ones cancel with no record made.
+
+Both the multi-interrupt pause and the cross-instance resume were verified empirically against the real SDK (not assumed from docs): approving a subset of a 3-appliance batch executes exactly those, denies the rest, and a fresh `Agent` instance (simulating a separate request/process) resumes the snapshot correctly.
+
+**Surfaces:**
+- `/check` (cron path) and `/ws/check` (live trace) both persist a pending confirmation instead of silently completing when the run pauses; the cron script prints a note to its logs so it's visible even though nothing calls it back.
+- `GET /confirmations` lists everything pending, one `requests` entry per due appliance. `POST /confirmations/{id}/respond` (`{"approved_appliance_ids": [...]}`) resolves the whole batch in one round trip — appliances not listed are denied — chaining into another persisted confirmation if the resumed run hits a further gate.
+- The dashboard's "Pending approvals" panel is the actual control: one card per pause, a checkbox per appliance (all checked by default), one "Submit decisions" action. The live tool trace shows the pause inline (`confirmation_required` event, listing every pending appliance) but defers the actual decision to that panel, since the WebSocket that surfaced it may no longer be open by the time a human responds.
+
+**Scope boundary — what "submit" actually means.** `submit_maintenance_request()` records that the household approved acting on a recommendation (`requested_action`, `request_notes`, and a `status` on the appliance) — it does not book a contractor, place an order, or contact a vendor. In reality, fulfillment is appliance-specific and heterogeneous: an HVAC repair goes through a contractor, a water heater replacement through a plumber or retailer, an EV charger issue through the utility or manufacturer — each with its own real-world channel, credentials, and API (or no API at all). Building those integrations is a separate, much larger project and explicitly out of scope here.
+
+This follows the same pattern already used elsewhere in this build: `ResendNotifier` sends through a sandbox sender rather than a production mail system, and the manuals under `data/manuals/` are mock excerpts standing in for real manufacturer PDFs. The Storage/VectorStore/Notifier interfaces exist precisely so a concrete implementation can be swapped in without touching agent/tool code — `submit_maintenance_request` is the same kind of seam: it's the boundary where the agent's job (recommend, get explicit human sign-off, record the decision) ends and a real fulfillment integration would begin. The demo's claim is narrower and fully true: a human decided, and that decision was durably recorded — not that a technician has been dispatched.
 
 ---
 

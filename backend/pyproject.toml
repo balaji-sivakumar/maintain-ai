@@ -37,3 +37,5 @@ packages = ["src/agents", "src/impl", "src/interfaces", "src/tools"]
 "src/runtime.py" = "runtime.py"
 "src/api.py" = "api.py"
 "src/live_trace.py" = "live_trace.py"
+"src/confirmations.py" = "confirmations.py"
+"src/maintenance_status.py" = "maintenance_status.py"

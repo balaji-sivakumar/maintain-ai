@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS appliances (
     id TEXT PRIMARY KEY,
     data JSONB NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS confirmations (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL
+);
 """
 
 
@@ -119,3 +124,23 @@ class NeonPostgresStorage(Storage):
         result = self._execute("DELETE FROM appliances WHERE id = %s", (appliance_id,))
         if result.rowcount == 0:
             raise KeyError(f"No tracked appliance with id {appliance_id!r}")
+
+    def save_confirmation(self, confirmation_id: str, data: dict[str, Any]) -> None:
+        self._execute(
+            "INSERT INTO confirmations (id, data) VALUES (%s, %s) "
+            "ON CONFLICT (id) DO UPDATE SET data = excluded.data",
+            (confirmation_id, Jsonb(data)),
+        )
+
+    def get_confirmation(self, confirmation_id: str) -> Optional[dict[str, Any]]:
+        row = self._execute(
+            "SELECT data FROM confirmations WHERE id = %s", (confirmation_id,)
+        ).fetchone()
+        return row[0] if row else None
+
+    def list_confirmations(self) -> list[dict[str, Any]]:
+        rows = self._execute("SELECT data FROM confirmations").fetchall()
+        return [row[0] for row in rows]
+
+    def delete_confirmation(self, confirmation_id: str) -> None:
+        self._execute("DELETE FROM confirmations WHERE id = %s", (confirmation_id,))

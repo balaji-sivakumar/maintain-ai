@@ -13,10 +13,10 @@ from typing import Callable, Optional
 
 from strands import tool
 
-from dates import add_months, parse_date
 from interfaces.notifier import Notifier
 from interfaces.storage import Storage
 from interfaces.vector_store import VectorStore
+from maintenance_status import REPAIR_REQUESTED, REPLACE_REQUESTED, compute_status, next_due_date
 
 
 def create_orchestrator_tools(
@@ -94,6 +94,11 @@ def create_orchestrator_tools(
         """Return only the tracked appliances that are due or overdue for service.
 
         An empty list means nothing is due right now — stay silent in that case.
+
+        Also persists each evaluated appliance's `status`
+        (OK/SERVICE_DUE/REPAIR_REQUESTED/REPLACE_REQUESTED) to Storage — this
+        is the one place status gets populated; a freshly added/seeded
+        appliance has no status until the first check runs.
         """
         due = []
         for appliance in storage.list_appliances():
@@ -102,10 +107,14 @@ def create_orchestrator_tools(
                 continue
 
             last_service_str = appliance.get("last_serviced_date") or appliance["install_date"]
-            last_service_date = parse_date(last_service_str)
-            next_due_date = add_months(last_service_date, reference["service_interval_months"])
+            due_date = next_due_date(appliance, reference)
+            is_due = _today() >= due_date
 
-            if _today() >= next_due_date:
+            storage.update_appliance(
+                appliance["id"], status=compute_status(appliance, reference, _today())
+            )
+
+            if is_due:
                 due.append(
                     {
                         "appliance_id": appliance["id"],
@@ -113,7 +122,7 @@ def create_orchestrator_tools(
                         "brand": appliance["brand"],
                         "model": appliance["model"],
                         "last_serviced_date": last_service_str,
-                        "due_since": next_due_date.isoformat(),
+                        "due_since": due_date.isoformat(),
                         "reference": reference,
                     }
                 )
@@ -171,7 +180,10 @@ def create_orchestrator_tools(
     @tool
     def send_notification(subject: str, message: str) -> str:
         """Send the household an email notification (only when something is
-        actually due — never for routine/no-op checks).
+        actually due — never for routine/no-op checks). Purely informational
+        — letting the household know something needs attention — so this
+        always goes out; the actual repair/replace decision is a separate,
+        human-approved step (see submit_maintenance_request).
 
         Args:
             subject: Short email subject line.
@@ -183,6 +195,33 @@ def create_orchestrator_tools(
         notifier.send(subject, message)
         return "Notification sent."
 
+    @tool
+    def submit_maintenance_request(appliance_id: str, action: str, notes: str) -> str:
+        """Submit a repair or replacement request for a due/overdue
+        appliance — the actual decision to act on the Cost Estimator's
+        recommendation, not just a notification about it.
+
+        Gated behind human approval (Day 6+): nothing is recorded as
+        requested until a human approves it. If the household denies one,
+        that's an expected decision, not an error — relay it plainly.
+
+        Args:
+            appliance_id: The tracked appliance's id (from check_due_maintenance).
+            action: "repair" or "replace" — matching estimate_cost's recommendation.
+            notes: Brief context recorded with the request (cost estimate + reasoning).
+        """
+        appliance = storage.get_appliance(appliance_id)
+        if not appliance:
+            return f"No tracked appliance found with id {appliance_id}."
+
+        # Keeps status in sync immediately on approval rather than waiting
+        # for the next check_due_maintenance run to notice requested_action.
+        status = REPLACE_REQUESTED if action == "replace" else REPAIR_REQUESTED
+        storage.update_appliance(
+            appliance_id, requested_action=action, request_notes=notes, status=status
+        )
+        return f"{action.capitalize()} request submitted for {appliance_id}."
+
     return [
         add_appliance,
         lookup_maintenance_interval,
@@ -191,4 +230,5 @@ def create_orchestrator_tools(
         log_completed_service,
         estimate_cost,
         send_notification,
+        submit_maintenance_request,
     ]

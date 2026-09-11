@@ -73,3 +73,19 @@ def test_delete_appliance(storage):
     assert storage.get_appliance(appliance_id) is None
     with pytest.raises(KeyError):
         storage.delete_appliance(appliance_id)
+
+
+def test_save_get_list_delete_confirmation(storage):
+    confirmation_id = f"test_confirmation_{uuid.uuid4().hex[:8]}"
+    try:
+        storage.save_confirmation(confirmation_id, {"id": confirmation_id, "prompt": "Approve X?"})
+        assert storage.get_confirmation(confirmation_id) == {
+            "id": confirmation_id,
+            "prompt": "Approve X?",
+        }
+        assert any(c["id"] == confirmation_id for c in storage.list_confirmations())
+
+        storage.delete_confirmation(confirmation_id)
+        assert storage.get_confirmation(confirmation_id) is None
+    finally:
+        storage._conn.execute("DELETE FROM confirmations WHERE id = %s", (confirmation_id,))

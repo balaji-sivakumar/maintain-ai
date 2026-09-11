@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 **/data/local_state.json
+**/data/local_confirmations.json
 **/data/chroma/
 *.egg-info/
 

@@ -30,7 +30,7 @@ why) — deployed via CLI upload from the repo root:
 
 | Service | Dockerfile | Purpose |
 |---|---|---|
-| `web` | `Dockerfile` (CMD: `uvicorn api:app --host 0.0.0.0 --port $PORT`) | `/health`, `/appliances`, `/appliances/{id}/service`, `/check`, `/ws/check`, `/demo/seed`, `/demo/reset` |
+| `web` | `Dockerfile` (CMD: `uvicorn api:app --host 0.0.0.0 --port $PORT`) | `/health`, `/appliances`, `/appliances/{id}/service`, `/check`, `/ws/check`, `/demo/seed`, `/demo/reset`, `/confirmations`, `/confirmations/{id}/respond` |
 | `cron` | `Dockerfile.cron` (CMD: `python scripts/cron_check.py`) | Runs once daily at 13:00 UTC, exits |
 
 Env vars (`MODEL_PROVIDER`, `OPENAI_API_KEY`, `DATABASE_URL`, `CHROMA_API_KEY`,
@@ -103,6 +103,29 @@ The orchestrator gets a `send_notification` tool and calls it once, only
 when `check_due_maintenance` actually found something due — verified live
 via the `/ws/check` trace (`send_notification` fires and returns `success`
 when something's due; never called on a silent check).
+
+**submit_maintenance_request is gated behind human approval (Day 6).**
+`send_notification` above is purely informational and always fires — the
+consequential step is `submit_maintenance_request`, the actual decision to
+act on a repair/replace recommendation, so that's the tool registered with
+Strands' `HumanInTheLoop` intervention handler
+(`allowed_tools=["*", "!submit_maintenance_request"]` in
+`agents/orchestrator.py`) rather than allowed to fire freely like every other
+tool. The orchestrator calls it once per due appliance; when several are due
+in the same turn, Strands pauses with *all* of them as separate pending
+interrupts at once (verified directly against the SDK) rather than one at a
+time, so `confirmations.py` persists the whole batch as a single confirmation
+— one entry per appliance — to `Storage` (a `confirmations` table in Neon /
+file in local dev). A human resolves the batch in one round trip via
+`GET /confirmations` + `POST /confirmations/{id}/respond`
+(`{"approved_appliance_ids": [...]}`, appliances not listed are denied), from
+a completely separate request/process than the one that ran the check. See
+ARCHITECTURE.md's "Human-in-the-loop confirmations" section for the full
+design. Verified live end-to-end: seeded demo data, ran a check, watched it
+pause with all 3 due appliances shown as checkboxes on one screen in the
+dashboard's "Pending approvals" panel, unchecked one, submitted, and
+confirmed only the checked appliances got `requested_action` recorded while
+the unchecked one stayed untouched.
 
 ## OTel tracing (Honeycomb) — done
 

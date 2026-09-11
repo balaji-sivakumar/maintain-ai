@@ -43,3 +43,22 @@ class Storage(ABC):
     @abstractmethod
     def delete_appliance(self, appliance_id: str) -> None:
         """Remove a tracked appliance (e.g. for demo/simulator reset)."""
+
+    @abstractmethod
+    def save_confirmation(self, confirmation_id: str, data: dict[str, Any]) -> None:
+        """Persist a pending human-in-the-loop confirmation (Day 6: gates
+        send_notification behind approval). data includes a JSON-serializable
+        agent Snapshot, so the paused run can be resumed on a fresh Agent
+        instance in a completely separate request."""
+
+    @abstractmethod
+    def get_confirmation(self, confirmation_id: str) -> Optional[dict[str, Any]]:
+        """Fetch one pending confirmation by id, or None if resolved/unknown."""
+
+    @abstractmethod
+    def list_confirmations(self) -> list[dict[str, Any]]:
+        """List all pending confirmations (for the dashboard to display)."""
+
+    @abstractmethod
+    def delete_confirmation(self, confirmation_id: str) -> None:
+        """Remove a confirmation once it's been approved or denied."""

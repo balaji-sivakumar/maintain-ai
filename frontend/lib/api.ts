@@ -6,6 +6,13 @@ export function wsCheckUrl(): string {
   return `${wsBase}/ws/check`;
 }
 
+export type ApplianceStatus =
+  | "OK"
+  | "SERVICE_DUE"
+  | "REPAIR_REQUESTED"
+  | "REPLACE_REQUESTED"
+  | "UNKNOWN";
+
 export interface Appliance {
   id: string;
   appliance_type: string;
@@ -13,6 +20,10 @@ export interface Appliance {
   model: string;
   install_date: string;
   last_serviced_date?: string;
+  /** Persisted by check_due_maintenance (see backend/src/maintenance_status.py)
+   * — absent until the first "Run check now" / cron check, so a freshly
+   * added or seeded appliance has no status yet. */
+  status?: ApplianceStatus;
 }
 
 export interface NewAppliance {
@@ -51,6 +62,19 @@ export function logService(id: string): Promise<{ appliance_id: string; last_ser
   return request(`/appliances/${id}/service`, { method: "POST", body: JSON.stringify({}) });
 }
 
+/** install_date/last_serviced_date: omit a field to leave it alone, pass
+ * null for last_serviced_date to clear it, or a value to set it — for
+ * playing around with due/overdue/near-EOL scenarios on an existing
+ * appliance without deleting and re-adding it. */
+export interface UpdateApplianceFields {
+  install_date?: string;
+  last_serviced_date?: string | null;
+}
+
+export function updateAppliance(id: string, fields: UpdateApplianceFields): Promise<Appliance> {
+  return request(`/appliances/${id}`, { method: "PATCH", body: JSON.stringify(fields) });
+}
+
 export function seedDemoData(): Promise<{ seeded: Appliance[] }> {
   return request("/demo/seed", { method: "POST" });
 }
@@ -63,6 +87,47 @@ export function checkHealth(): Promise<{ status: string }> {
   return request("/health");
 }
 
+// --- Human-in-the-loop confirmations (Day 6) --------------------------
+//
+// submit_maintenance_request (the actual decision to act on a repair/replace
+// recommendation, not the informational email) is gated behind approval.
+// When the orchestrator proposes it for several due appliances in one turn,
+// Strands pauses with all of them as separate pending decisions at once —
+// one confirmation "batch" per pause, one `requests` entry per appliance.
+
+export interface PendingMaintenanceRequest {
+  appliance_id: string;
+  action: string;
+  notes: string;
+}
+
+export interface PendingConfirmation {
+  id: string;
+  requests: PendingMaintenanceRequest[];
+}
+
+export interface RespondResult {
+  approved_appliance_ids?: string[];
+  response?: string;
+  confirmation_required?: boolean;
+  confirmation_id?: string;
+  requests?: PendingMaintenanceRequest[];
+}
+
+export function listConfirmations(): Promise<PendingConfirmation[]> {
+  return request("/confirmations");
+}
+
+export function respondToConfirmation(
+  id: string,
+  approvedApplianceIds: string[]
+): Promise<RespondResult> {
+  return request(`/confirmations/${id}/respond`, {
+    method: "POST",
+    body: JSON.stringify({ approved_appliance_ids: approvedApplianceIds }),
+  });
+}
+
 // --- Live tool trace -------------------------------------------------------
 
 export type TraceEvent =
@@ -70,6 +135,7 @@ export type TraceEvent =
   | { type: "tool_result"; tool_use_id: string; name: string; status: string; output: string }
   | { type: "text_delta"; content: string }
   | { type: "done"; final_text: string }
+  | { type: "confirmation_required"; confirmation_id: string | null; requests: PendingMaintenanceRequest[] }
   | { type: "error"; message: string };
 
 /** A handful of appliance types not in the seeded reference table, so

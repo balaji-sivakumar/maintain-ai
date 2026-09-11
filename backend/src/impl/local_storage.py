@@ -18,6 +18,7 @@ from interfaces.storage import Storage
 # backend/, so this resolves correctly everywhere it's actually used.
 DEFAULT_REFERENCE_PATH = Path.cwd() / "data" / "appliances.json"
 DEFAULT_STATE_PATH = Path.cwd() / "data" / "local_state.json"
+DEFAULT_CONFIRMATIONS_PATH = Path.cwd() / "data" / "local_confirmations.json"
 
 
 class LocalJsonStorage(Storage):
@@ -25,16 +26,24 @@ class LocalJsonStorage(Storage):
         self,
         reference_path: Path = DEFAULT_REFERENCE_PATH,
         state_path: Path = DEFAULT_STATE_PATH,
+        confirmations_path: Path = DEFAULT_CONFIRMATIONS_PATH,
     ):
         self._reference_path = reference_path
         self._state_path = state_path
+        self._confirmations_path = confirmations_path
         self._reference: dict[str, Any] = json.loads(reference_path.read_text())
         self._state: dict[str, Any] = (
             json.loads(state_path.read_text()) if state_path.exists() else {}
         )
+        self._confirmations: dict[str, Any] = (
+            json.loads(confirmations_path.read_text()) if confirmations_path.exists() else {}
+        )
 
     def _persist_state(self) -> None:
         self._state_path.write_text(json.dumps(self._state, indent=2, default=str))
+
+    def _persist_confirmations(self) -> None:
+        self._confirmations_path.write_text(json.dumps(self._confirmations, indent=2, default=str))
 
     def get_reference_data(self, appliance_type: str) -> Optional[dict[str, Any]]:
         return self._reference.get(appliance_type)
@@ -66,3 +75,17 @@ class LocalJsonStorage(Storage):
             raise KeyError(f"No tracked appliance with id {appliance_id!r}")
         del self._state[appliance_id]
         self._persist_state()
+
+    def save_confirmation(self, confirmation_id: str, data: dict[str, Any]) -> None:
+        self._confirmations[confirmation_id] = data
+        self._persist_confirmations()
+
+    def get_confirmation(self, confirmation_id: str) -> Optional[dict[str, Any]]:
+        return self._confirmations.get(confirmation_id)
+
+    def list_confirmations(self) -> list[dict[str, Any]]:
+        return list(self._confirmations.values())
+
+    def delete_confirmation(self, confirmation_id: str) -> None:
+        self._confirmations.pop(confirmation_id, None)
+        self._persist_confirmations()

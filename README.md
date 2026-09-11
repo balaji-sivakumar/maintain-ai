@@ -27,9 +27,11 @@ Maintain-AI runs quietly in the background. It tracks a household's appliances, 
 2. Checks maintenance intervals against a structured dataset, falling back to a document-based knowledge base for anything not covered
 3. Stays silent when nothing is due
 4. When something is due or overdue, delegates to a Cost Estimator sub-agent to recommend repair vs. replace
-5. Notifies the user only when a decision is actually needed
+5. Notifies the user whenever something needs attention, and — separately — lets the household approve or deny each appliance's repair/replace request before it's ever recorded as submitted, not just advisory in name
 
-**Why it fits the track:** This is background, judgment-heavy busywork — the kind of task people let slide because checking manually is tedious. The agent removes the tracking burden and adds a decision layer (cost tradeoff) that a plain reminder app doesn't provide.
+**Why it fits the track:** This is background, judgment-heavy busywork — the kind of task people let slide because checking manually is tedious. The agent removes the tracking burden and adds a decision layer (cost tradeoff) that a plain reminder app doesn't provide. The human-in-the-loop approval gate (see ARCHITECTURE.md) keeps a background agent from ever submitting a repair/replace request on the household's behalf without a person deciding first — one screen, one decision per appliance.
+
+**Scope note:** "submitting a request" means recording the household's decision (what, and whether to proceed) — not booking a contractor or placing an order. Real fulfillment is appliance-specific (an HVAC repair, a plumber for a water heater, a utility for an EV charger) and intentionally out of scope; see ARCHITECTURE.md's "Scope boundary" for why, and how it follows the same pluggable-interface pattern as the rest of this build.
 
 ---
 
@@ -100,7 +102,7 @@ Per the [hackathon rules](https://agentsforhumans.devpost.com/rules):
 - [x] Built with the Strands Agents SDK (the one hard technical requirement)
 - [x] Public code repo (GitHub), MIT license visible at the repo root, README, setup instructions
 - [x] Architecture diagram — see [ARCHITECTURE.md](ARCHITECTURE.md)
-- [x] Project runs consistently and does real end-to-end work (tracks appliances, delegates to a real Cost Estimator sub-agent, sends real email notifications) — not just chat
+- [x] Project runs consistently and does real end-to-end work (tracks appliances, delegates to a real Cost Estimator sub-agent, sends real email notifications, gates repair/replace request submission behind human approval) — not just chat
 - [x] Optional live demo link — https://maintain-ai-dashboard.vercel.app
 - [ ] Text description (problem, audience, how it works) — draft ready, needs pasting into the Devpost form
 - [ ] Demo video (max 5 min, uploaded to YouTube/Vimeo, public): problem, audience, why it matters, working end-to-end walkthrough

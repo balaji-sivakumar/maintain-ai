@@ -12,6 +12,7 @@ from datetime import date
 from typing import Optional
 
 from strands import Agent
+from strands.vended_interventions.hitl import HumanInTheLoop
 
 from interfaces.notifier import Notifier
 from interfaces.storage import Storage
@@ -32,10 +33,22 @@ AND estimate_cost for that appliance, then present both the reminder and the rep
 recommendation together.
 - If (and only if) at least one appliance is due or overdue, call send_notification once at the \
 end with a subject line and a message summarizing every due appliance's reminder and cost \
-recommendation gathered above — this is the actual notification that reaches the household, so \
-don't skip it when something is due.
-- Cost recommendations are advisory only — you are suggesting repair or replace, never booking, \
-ordering, or purchasing anything on the user's behalf.
+recommendation gathered above — this is purely informational (letting the household know \
+something needs attention) and always goes out, so don't skip it when something is due.
+- For every appliance where estimate_cost recommended repair or replace, also call \
+submit_maintenance_request with that appliance's id, the recommended action ("repair" or \
+"replace"), and brief notes (the cost estimate and reasoning) — this is the actual decision to \
+act on the recommendation, gated behind human approval: nothing is recorded as requested until a \
+human approves it. Call it once per appliance, not bundled into one call.
+- submit_maintenance_request may report some appliances were denied — the household reviews and \
+decides which repairs/replacements to actually proceed with. That's expected behavior, not an \
+error: relay the outcome plainly, don't apologize or retry. If a tool result contains the literal \
+text "CONFIRMATION_FAILED", that specifically means the household chose not to approve that one — \
+describe it as "not approved" or "declined by the household", never as "failed" or an error, and \
+never quote that literal string back to the user.
+- Cost recommendations are advisory only — you are proposing repair or replace, never booking, \
+ordering, or purchasing anything with a real vendor on the user's behalf; submitting a request \
+only records the household's confirmed decision internally.
 - Never fabricate service intervals or costs — always use lookup_maintenance_interval and \
 estimate_cost for that data, and say so plainly if a tool returns nothing.
 """
@@ -53,4 +66,15 @@ def build_orchestrator(
             storage, vector_store=vector_store, notifier=notifier, today=today
         ),
         system_prompt=SYSTEM_PROMPT,
+        # Day 6: submit_maintenance_request is the consequential action (the
+        # household's actual decision to proceed with a repair/replacement),
+        # so it's the one gated behind human approval — send_notification is
+        # just informational and runs freely. When the orchestrator calls
+        # submit_maintenance_request once per due appliance in the same turn,
+        # Strands pauses with ALL of them as separate pending interrupts at
+        # once (verified directly against the SDK) — which is what lets the
+        # dashboard show one screen with a decision per appliance, resolved
+        # together in a single approve/deny submission, rather than a
+        # one-at-a-time chain. See confirmations.py.
+        interventions=[HumanInTheLoop(allowed_tools=["*", "!submit_maintenance_request"])],
     )
