@@ -104,6 +104,33 @@ when `check_due_maintenance` actually found something due — verified live
 via the `/ws/check` trace (`send_notification` fires and returns `success`
 when something's due; never called on a silent check).
 
+## OTel tracing (Honeycomb) — code done, needs your account
+
+Strands already emits OTel spans internally for every chat turn, tool call,
+and event-loop cycle — this doesn't add tracing, it just gives the
+already-happening spans a destination. `runtime.setup_telemetry()` calls
+`StrandsTelemetry().setup_otlp_exporter()` when `OTEL_EXPORTER_OTLP_ENDPOINT`
+is set, no-ops otherwise (so local dev/tests stay quiet by default). Pure
+OTLP over HTTPS, direct from the Railway container to Honeycomb — no
+collector or sidecar needed.
+
+1. Sign up at honeycomb.io (free tier: 20M events/month)
+2. Create an API key
+3. Set on **both** Railway services:
+   ```
+   OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io/
+   OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<your-api-key>
+   OTEL_SERVICE_NAME=maintain-ai
+   ```
+4. Redeploy both services (`railway up backend --path-as-root --service <web|cron>`)
+
+The cron script explicitly force-flushes the span batch before exiting
+(`scripts/cron_check.py`) — it's a short-lived process, and the default
+`BatchSpanProcessor` flushes on a timer that a process exiting immediately
+after one check would otherwise race and silently drop spans. The web
+service also flushes after `/check` and `/ws/check` so spans show up in
+Honeycomb right away for a demo, rather than trailing by the batch interval.
+
 ## Not yet wired
 
 - Real manufacturer manuals — `data/manuals/*.txt` are mock excerpts I wrote,

@@ -49,7 +49,7 @@ The agent design (Agent-as-Tool pattern, tools, data flow) is firm and stack-ind
 | RAG fallback | Chroma | Vector search over appliance manuals when the structured table has no match |
 | Notifications | Console log (Stage A) → Resend (deployed) | Sends reminder + cost-recommendation alerts to the user |
 | Compute/hosting | Railway | Hosts the FastAPI service (agent runtime + manual add/update API) and the daily cron trigger |
-| Observability | Strands built-in tracing | Shows agent decision path in the demo video |
+| Observability | Strands' built-in OTel spans → Honeycomb (OTLP) | Engineering-grade trace: per-tool timing, token usage, latency — distinct from the judging UI's simplified narrative feed |
 | Live judging UI | Next.js on Vercel + WebSocket (FastAPI) | Streams tool-execution events live for judges — [deployed](https://maintain-ai-dashboard.vercel.app) |
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full interface contracts and the AWS-native reference option.

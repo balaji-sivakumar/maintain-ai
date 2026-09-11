@@ -16,9 +16,20 @@ from pydantic import BaseModel
 
 from agents.orchestrator import build_orchestrator
 from live_trace import stream_events
-from runtime import build_notifier, build_storage, build_vector_store
+from runtime import build_notifier, build_storage, build_vector_store, setup_telemetry
+
+_telemetry = setup_telemetry()
 
 _state: dict = {}
+
+
+def _flush_telemetry() -> None:
+    # Not correctness-critical here (unlike the cron script, this process
+    # stays alive and the batch timer would flush eventually) — just makes
+    # spans show up in Honeycomb immediately after a check, rather than
+    # trailing behind the WebSocket trace by the batch interval.
+    if _telemetry:
+        _telemetry.tracer_provider.force_flush()
 
 CHECK_PROMPT = "Check if any of my appliances need maintenance."
 
@@ -107,6 +118,7 @@ def check_maintenance():
     the /ws/check WebSocket instead.
     """
     result = _build_agent()(CHECK_PROMPT)
+    _flush_telemetry()
     return {"response": str(result)}
 
 
@@ -186,6 +198,7 @@ async def ws_check(websocket: WebSocket):
     except Exception as exc:
         await websocket.send_text(json.dumps({"type": "error", "message": str(exc)}))
     finally:
+        _flush_telemetry()
         try:
             await websocket.close()
         except RuntimeError:

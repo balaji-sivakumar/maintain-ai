@@ -46,3 +46,23 @@ def build_notifier() -> Notifier:
     from impl.console_notifier import ConsoleNotifier
 
     return ConsoleNotifier()
+
+
+def setup_telemetry() -> Optional["StrandsTelemetry"]:  # noqa: F821
+    """Wires Strands' already-running internal OTel instrumentation to an
+    OTLP backend (e.g. Honeycomb) — Strands emits spans for every chat turn,
+    tool call, and event-loop cycle regardless of this call; it just gives
+    them somewhere to go. No-op (returns None) if OTEL_EXPORTER_OTLP_ENDPOINT
+    isn't set, so local dev/tests stay quiet (no verbose span JSON) by default.
+
+    Returns the StrandsTelemetry instance so short-lived callers (the cron
+    script) can force-flush its BatchSpanProcessor before exiting — the
+    processor flushes on a background timer, which a process that exits
+    immediately after one check would otherwise race and silently drop.
+    """
+    if not os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
+        return None
+
+    from strands.telemetry import StrandsTelemetry
+
+    return StrandsTelemetry().setup_otlp_exporter()
