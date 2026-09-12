@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from agents.orchestrator import build_orchestrator
-from confirmations import persist_if_interrupted
+from core.confirmations import persist_if_interrupted
 from runtime import build_notifier, build_storage, build_vector_store, setup_telemetry
 
 

@@ -6,7 +6,7 @@ from datetime import date
 
 from fastapi import APIRouter
 
-import app_state
+from core import app_state
 
 router = APIRouter()
 

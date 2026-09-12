@@ -13,10 +13,10 @@ from typing import Callable, Optional
 
 from strands import tool
 
+from core.maintenance_status import REPAIR_REQUESTED, REPLACE_REQUESTED, compute_status, next_due_date
 from interfaces.notifier import Notifier
 from interfaces.storage import Storage
 from interfaces.vector_store import VectorStore
-from maintenance_status import REPAIR_REQUESTED, REPLACE_REQUESTED, compute_status, next_due_date
 
 
 def create_orchestrator_tools(
@@ -32,7 +32,7 @@ def create_orchestrator_tools(
     def _extract(appliance_type: str, excerpts: list[str]) -> Optional[dict]:
         if extract_reference_data is not None:
             return extract_reference_data(appliance_type, excerpts)
-        from rag import extract_reference_data as default_extract_reference_data
+        from core.rag import extract_reference_data as default_extract_reference_data
 
         return default_extract_reference_data(appliance_type, excerpts)
 

@@ -8,8 +8,8 @@ from datetime import date
 
 from fastapi import APIRouter, HTTPException
 
-import app_state
-from maintenance_status import compute_status
+from core import app_state
+from core.maintenance_status import compute_status
 from schemas.requests import AddApplianceRequest, LogServiceRequest, UpdateApplianceRequest
 
 router = APIRouter()

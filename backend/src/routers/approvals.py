@@ -6,8 +6,8 @@ surface over it.
 
 from fastapi import APIRouter, HTTPException
 
-import app_state
-from confirmations import confirmation_required_response, resume_confirmation
+from core import app_state
+from core.confirmations import confirmation_required_response, resume_confirmation
 from schemas.requests import RespondConfirmationRequest
 
 router = APIRouter()

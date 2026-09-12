@@ -1,6 +1,6 @@
 from datetime import date
 
-from maintenance_status import (
+from core.maintenance_status import (
     OK,
     REPAIR_REQUESTED,
     REPLACE_REQUESTED,

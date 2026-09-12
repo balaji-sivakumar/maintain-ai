@@ -7,9 +7,9 @@ import json
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-import app_state
-from confirmations import confirmation_required_response
-from live_trace import stream_events
+from core import app_state
+from core.confirmations import confirmation_required_response
+from core.live_trace import stream_events
 
 router = APIRouter()
 

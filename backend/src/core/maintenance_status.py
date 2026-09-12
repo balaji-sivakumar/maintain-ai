@@ -8,7 +8,7 @@ source of truth for what counts as due, so the two never disagree.
 from datetime import date
 from typing import Any, Optional
 
-from dates import add_months, parse_date
+from core.dates import add_months, parse_date
 
 OK = "OK"
 SERVICE_DUE = "SERVICE_DUE"

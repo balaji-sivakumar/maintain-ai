@@ -1,6 +1,6 @@
 import pytest
 
-from confirmations import (
+from core.confirmations import (
     confirmation_required_response,
     pending_requests,
     persist_if_interrupted,

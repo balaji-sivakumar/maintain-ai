@@ -18,7 +18,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import app_state
+from core import app_state
 from routers import appliances, approvals, checks, demo, health
 from runtime import build_notifier, build_storage, build_vector_store
 

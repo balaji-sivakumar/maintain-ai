@@ -1,6 +1,6 @@
 import pytest
 
-from live_trace import stream_events
+from core.live_trace import stream_events
 
 
 class FakeResult:

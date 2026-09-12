@@ -7,7 +7,7 @@ lookup (Day 4).
 from pydantic import BaseModel, Field
 from strands import Agent
 
-from model import get_model
+from core.model import get_model
 
 EXTRACTION_SYSTEM_PROMPT = """You extract structured appliance maintenance data from \
 manufacturer manual excerpts. Only use information present in the excerpts — never \

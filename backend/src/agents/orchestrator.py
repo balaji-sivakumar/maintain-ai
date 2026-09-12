@@ -14,10 +14,10 @@ from typing import Optional
 from strands import Agent
 from strands.vended_interventions.hitl import HumanInTheLoop
 
+from core.model import get_model
 from interfaces.notifier import Notifier
 from interfaces.storage import Storage
 from interfaces.vector_store import VectorStore
-from model import get_model
 from tools.appliance_tools import create_orchestrator_tools
 
 SYSTEM_PROMPT = """You are Maintain-AI, a quiet background agent that tracks a household's \
