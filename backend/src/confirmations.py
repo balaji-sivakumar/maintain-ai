@@ -73,6 +73,29 @@ def persist_if_interrupted(
     return record
 
 
+def confirmation_required_response(
+    storage: Storage, agent: Agent, result: AgentResult
+) -> Optional[dict[str, Any]]:
+    """The one place that decides what a paused run looks like on the wire.
+
+    Every HTTP/WS surface that can receive an interrupted AgentResult
+    (/check, /ws/check, and POST /confirmations/{id}/respond when a resumed
+    run hits a further gate) needs the exact same thing: persist it, then
+    report {"confirmation_required": True, "confirmation_id", "requests"}.
+    Before this existed, each of those three call sites hand-rolled that
+    shape slightly differently. Returns None if `result` finished normally.
+    """
+    if result.stop_reason != "interrupt" or not result.interrupts:
+        return None
+
+    confirmation = persist_if_interrupted(storage, agent, result)
+    return {
+        "confirmation_required": True,
+        "confirmation_id": confirmation["id"] if confirmation else None,
+        "requests": confirmation["requests"] if confirmation else pending_requests(result),
+    }
+
+
 def resume_confirmation(
     storage: Storage, agent: Agent, confirmation_id: str, approved_appliance_ids: list[str]
 ) -> AgentResult:

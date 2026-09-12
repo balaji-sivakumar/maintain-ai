@@ -28,7 +28,7 @@ dev = [
 asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agents", "src/impl", "src/interfaces", "src/tools"]
+packages = ["src/agents", "src/impl", "src/interfaces", "src/routers", "src/schemas", "src/tools"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/dates.py" = "dates.py"
@@ -36,6 +36,7 @@ packages = ["src/agents", "src/impl", "src/interfaces", "src/tools"]
 "src/rag.py" = "rag.py"
 "src/runtime.py" = "runtime.py"
 "src/api.py" = "api.py"
+"src/app_state.py" = "app_state.py"
 "src/live_trace.py" = "live_trace.py"
 "src/confirmations.py" = "confirmations.py"
 "src/maintenance_status.py" = "maintenance_status.py"

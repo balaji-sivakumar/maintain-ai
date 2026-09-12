@@ -1,6 +1,11 @@
 import pytest
 
-from confirmations import pending_requests, persist_if_interrupted, resume_confirmation
+from confirmations import (
+    confirmation_required_response,
+    pending_requests,
+    persist_if_interrupted,
+    resume_confirmation,
+)
 
 
 def _interrupt_id(tool_use_id: str) -> str:
@@ -173,6 +178,32 @@ def test_resume_confirmation_approves_selected_and_denies_the_rest():
     ]
     assert result.stop_reason == "end_turn"
     assert storage.get_confirmation("c1") is None  # deleted after resume
+
+
+def test_confirmation_required_response_returns_none_on_normal_completion():
+    storage = FakeStorage()
+    agent = FakeAgent()
+    result = FakeResult(stop_reason="end_turn", interrupts=None)
+
+    assert confirmation_required_response(storage, agent, result) is None
+    assert storage._confirmations == {}
+
+
+def test_confirmation_required_response_persists_and_shapes_the_wire_payload():
+    """The one shape every HTTP/WS surface sends when a run pauses — this is
+    what used to be hand-rolled separately in /check, /ws/check (formerly
+    inside live_trace.py itself), and POST /confirmations/{id}/respond."""
+    storage = FakeStorage()
+    agent = FakeAgent()
+    content = [_tool_use_block("call_1", "a1", "repair")]
+    result = FakeResult(stop_reason="interrupt", interrupts=[FakeInterrupt("call_1")], content=content)
+
+    response = confirmation_required_response(storage, agent, result)
+
+    assert response["confirmation_required"] is True
+    assert response["confirmation_id"] in storage._confirmations
+    assert response["requests"] == storage._confirmations[response["confirmation_id"]]["requests"]
+    assert response["requests"][0]["appliance_id"] == "a1"
 
 
 def test_resume_confirmation_with_no_approved_ids_denies_everything():
