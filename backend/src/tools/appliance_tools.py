@@ -55,6 +55,13 @@ def create_orchestrator_tools(
         extracted = _extract(appliance_type, excerpts)
         if extracted:
             storage.cache_reference_data(appliance_type, extracted)
+            print(
+                f"[RAG] {appliance_type!r}: retrieved {len(excerpts)} manual excerpt(s), "
+                f"extracted service_interval_months={extracted.get('service_interval_months')}, "
+                f"typical_lifespan_years={extracted.get('typical_lifespan_years')}, "
+                f"repair_cost_range_usd={extracted.get('repair_cost_range_usd')}, "
+                f"replacement_cost_range_usd={extracted.get('replacement_cost_range_usd')}"
+            )
         return extracted
 
     @tool
